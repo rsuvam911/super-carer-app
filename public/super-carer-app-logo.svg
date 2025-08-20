@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="300" viewBox="0 0 500 300">
+  <rect width="500" height="300" fill="#1a2352"/>
+  
+  <!-- Hands -->
+  <path d="M300 230 C350 180 400 200 430 230 C440 240 450 250 450 260" fill="none" stroke="white" stroke-width="15"/>
+  <path d="M200 230 C150 180 100 200 70 230 C60 240 50 250 50 260" fill="none" stroke="white" stroke-width="15"/>
+  
+  <!-- Heart -->
+  <path d="M250 150 C260 130 280 130 290 150 C300 170 270 190 250 200 C230 190 200 170 210 150 C220 130 240 130 250 150 Z" fill="#00C2CB"/>
+  <path d="M250 170 L260 180 L250 190 L240 180 Z" fill="#1a2352"/>
+  
+  <!-- Window -->
+  <rect x="235" y="230" width="30" height="30" fill="white"/>
+  <line x1="235" y1="245" x2="265" y2="245" stroke="#1a2352" stroke-width="2"/>
+  <line x1="250" y1="230" x2="250" y2="260" stroke="#1a2352" stroke-width="2"/>
+  
+  <!-- People silhouettes -->
+  <path d="M200 290 C220 260 240 270 250 290 C260 270 280 260 300 290" fill="#00C2CB"/>
+  <circle cx="220" cy="280" r="5" fill="#00C2CB"/>
+  <circle cx="230" cy="285" r="3" fill="#00C2CB"/>
+  <circle cx="270" cy="285" r="3" fill="#00C2CB"/>
+  <circle cx="280" cy="280" r="5" fill="#00C2CB"/>
+  
+  <!-- Wheelchair person -->
+  <circle cx="250" cy="280" r="7" fill="#00C2CB"/>
+  <path d="M245 287 L255 287 L253 295 L247 295 Z" fill="#00C2CB"/>
+  <circle cx="245" cy="295" r="3" fill="#00C2CB"/>
+  <circle cx="255" cy="295" r="3" fill="#00C2CB"/>
+  
+  <!-- Arc under the logo -->
+  <path d="M150 320 C250 350 350 320 450 350" fill="none" stroke="#00C2CB" stroke-width="5"/>
+  
+  <!-- Text -->
+  <text x="250" y="380" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#00C2CB" text-anchor="middle">Super Carer App</text>
+</svg>

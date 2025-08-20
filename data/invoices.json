@@ -1,0 +1,52 @@
+{
+  "invoices": [
+    {
+      "id": "invoice-0",
+      "invoiceNo": "09FJKHS78WH",
+      "clientName": "Albert Flores",
+      "price": 67,
+      "dueDate": "14 Apr, 2025",
+      "status": "Pending"
+    },
+    {
+      "id": "invoice-1",
+      "invoiceNo": "09FJKHS78WH",
+      "clientName": "Albert Flores",
+      "price": 67,
+      "dueDate": "14 Apr, 2025",
+      "status": "Completed"
+    },
+    {
+      "id": "invoice-2",
+      "invoiceNo": "09FJKHS78WH",
+      "clientName": "Albert Flores",
+      "price": 67,
+      "dueDate": "14 Apr, 2025",
+      "status": "Completed"
+    },
+    {
+      "id": "invoice-3",
+      "invoiceNo": "09FJKHS78WH",
+      "clientName": "Albert Flores",
+      "price": 67,
+      "dueDate": "14 Apr, 2025",
+      "status": "Pending"
+    },
+    {
+      "id": "invoice-4",
+      "invoiceNo": "09FJKHS78WH",
+      "clientName": "Albert Flores",
+      "price": 67,
+      "dueDate": "14 Apr, 2025",
+      "status": "Completed"
+    },
+    {
+      "id": "invoice-5",
+      "invoiceNo": "09FJKHS78WH",
+      "clientName": "Albert Flores",
+      "price": 67,
+      "dueDate": "14 Apr, 2025",
+      "status": "Completed"
+    }
+  ]
+}

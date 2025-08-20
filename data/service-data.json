@@ -1,0 +1,16 @@
+{
+  "serviceData": [
+    { "month": "Jan", "value": 100 },
+    { "month": "Feb", "value": 150 },
+    { "month": "Mar", "value": 200 },
+    { "month": "Apr", "value": 250 },
+    { "month": "May", "value": 200 },
+    { "month": "Jun", "value": 250 },
+    { "month": "Jul", "value": 300 },
+    { "month": "Aug", "value": 250 },
+    { "month": "Sep", "value": 300 },
+    { "month": "Oct", "value": 350 },
+    { "month": "Nov", "value": 400 },
+    { "month": "Dec", "value": 350 }
+  ]
+}

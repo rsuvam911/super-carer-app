@@ -1,0 +1,7 @@
+{
+  "clientDistribution": {
+    "elderlyCare": 45,
+    "childrenCare": 35,
+    "disabilityCare": 20
+  }
+}

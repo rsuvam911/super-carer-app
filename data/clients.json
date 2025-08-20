@@ -1,0 +1,100 @@
+{
+  "clients": [
+    {
+      "id": "client-0",
+      "name": "Albert Flores",
+      "location": "775 Rolling Green Rd.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum ipsum eu quisque tristique mauris sit.",
+      "status": "Pending"
+    },
+    {
+      "id": "client-1",
+      "name": "Albert Flores",
+      "location": "3605 Parker Rd.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum faucibus enim sit amet egestas sem.",
+      "status": "Completed"
+    },
+    {
+      "id": "client-2",
+      "name": "Albert Flores",
+      "location": "3890 Poplar Dr.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum quam tempus eget orci auctor urna.",
+      "status": "Completed"
+    },
+    {
+      "id": "client-3",
+      "name": "Albert Flores",
+      "location": "8080 Railroad St.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum ut eget sit imperdiet sem euismod.",
+      "status": "Pending"
+    },
+    {
+      "id": "client-4",
+      "name": "Albert Flores",
+      "location": "7529 E. Pecan St.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum urna vitae mi morbi sed ante.",
+      "status": "Completed"
+    },
+    {
+      "id": "client-5",
+      "name": "Albert Flores",
+      "location": "8558 Green Rd.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum aliquam vulputate molestie faucibus id lacilis.",
+      "status": "Completed"
+    },
+    {
+      "id": "client-6",
+      "name": "Albert Flores",
+      "location": "775 Rolling Green Rd.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum sapien aliquet posuere nec aliquam at.",
+      "status": "Pending"
+    },
+    {
+      "id": "client-7",
+      "name": "Albert Flores",
+      "location": "3605 Parker Rd.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum erat rhoncus sit sed venenatis malesuada.",
+      "status": "Completed"
+    },
+    {
+      "id": "client-8",
+      "name": "Albert Flores",
+      "location": "3890 Poplar Dr.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum facilisis ipsum id libero at integer.",
+      "status": "Completed"
+    },
+    {
+      "id": "client-9",
+      "name": "Albert Flores",
+      "location": "8080 Railroad St.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum suspendisse varius turpis nunc mollis tempus.",
+      "status": "Pending"
+    },
+    {
+      "id": "client-10",
+      "name": "Albert Flores",
+      "location": "7529 E. Pecan St.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum purus vitae eleifend arcu posuere rhoncus.",
+      "status": "Completed"
+    },
+    {
+      "id": "client-11",
+      "name": "Albert Flores",
+      "location": "8558 Green Rd.",
+      "date": "14 Apr, 2025",
+      "serviceDetails": "Lorem ipsum eget ultricies ornare nunc pharetra ante.",
+      "status": "Completed"
+    }
+  ]
+}
