@@ -146,6 +146,7 @@ export interface BookingWindow {
 // Request payload for creating a booking
 export interface CreateBookingRequest {
   providerId: string;
+  userId: string;
   categoryId: string;
   specialInstructions: string;
   bookingWindows: BookingWindow[];

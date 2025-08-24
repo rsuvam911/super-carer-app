@@ -1,6 +1,7 @@
-// app/client/book/[providerId]/page.tsx
+// app/client/bookings/book/[providerId]/page.tsx
 'use client';
 
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProviderService } from '@/services/providerService';
@@ -16,18 +17,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface BookingPageProps {
-    params: { providerId: string };
+    // In Next.js 15/React 19, params is a Promise and should be unwrapped using React.use
+    params: Promise<{ userId: string }>;
 }
 
 export default function CreateBookingPage({ params }: BookingPageProps) {
     const router = useRouter();
-    const { providerId } = params;
+    // Unwrap params per Next.js guidance to avoid deprecation warning
+    const { userId } = React.use(params);
 
     // --- State Management ---
     const [profile, setProfile] = useState<ProviderProfileDetails | null>(null);
     const [calendarData, setCalendarData] = useState<ProviderMonthlyCalendar | null>(null);
     const [dailySlots, setDailySlots] = useState<{ id: string; day: string; available: boolean; slots: AvailabilitySlot[] } | null>(null);
-
+    const [providerId, setProviderId] = useState<string>('');
     const [selectedCategory, setSelectedCategory] = useState<ProviderCategory | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedSlots, setSelectedSlots] = useState<AvailabilitySlot[]>([]);
@@ -42,17 +45,15 @@ export default function CreateBookingPage({ params }: BookingPageProps) {
     // --- Data Fetching ---
     useEffect(() => {
         const fetchProfile = async () => {
-            if (!providerId) return;
+
+            if (!userId) return;
             setLoading(true);
             setError(null);
             try {
-                const response = await ProviderService.getProviderProfile(providerId); // Note: This uses userId, but providerId is in path. Check API.
-                // Assuming the API allows fetching profile by providerId as userId or there's a mapping.
-                // Or fetch by userId if you have it. For now, assuming providerId works or is userId.
-                // If not, you might need to fetch providers list first or get userId another way.
-                // Let's assume for now providerId in path corresponds to userId for profile fetch.
+                const response = await ProviderService.getProviderProfile(userId);
                 if (!response.success) throw new Error(response.message || 'Failed to fetch provider profile');
                 setProfile(response.payload);
+                setProviderId(response.payload.providerId);
             } catch (err: any) {
                 console.error('Failed to fetch provider profile:', err);
                 setError(err.message || 'Failed to load provider information.');
@@ -61,7 +62,7 @@ export default function CreateBookingPage({ params }: BookingPageProps) {
             }
         };
         fetchProfile();
-    }, [providerId]);
+    }, [userId]);
 
     useEffect(() => {
         const fetchCalendar = async () => {
@@ -150,7 +151,7 @@ export default function CreateBookingPage({ params }: BookingPageProps) {
     };
 
     const handleConfirmBooking = async () => {
-        if (!providerId || !selectedCategory || selectedSlots.length === 0 || !selectedDate) {
+        if (!providerId || !selectedCategory || selectedSlots.length === 0 || !selectedDate || !profile) {
             setError("Missing required booking information.");
             return;
         }
@@ -159,7 +160,8 @@ export default function CreateBookingPage({ params }: BookingPageProps) {
         setError(null);
         try {
             const bookingData: CreateBookingRequest = {
-                providerId,
+                providerId, // provider's providerId from route
+                userId: userId || profile.userId, // prefer param userId; fallback to profile
                 categoryId: selectedCategory.id,
                 specialInstructions,
                 bookingWindows: selectedSlots.map(slot => ({

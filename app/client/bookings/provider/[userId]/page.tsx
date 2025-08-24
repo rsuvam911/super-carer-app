@@ -64,7 +64,7 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
 
     const handleBookNow = () => {
         if (profile) {
-            router.push(`/client/book/${profile.providerId}`);
+            router.push(`/client/bookings/book/${profile.userId}`);
         }
     };
 
