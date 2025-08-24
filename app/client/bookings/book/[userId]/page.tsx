@@ -1,337 +1,414 @@
 // app/client/bookings/book/[providerId]/page.tsx
-'use client';
+'use client'
 
-import React from 'react';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ProviderService } from '@/services/providerService';
-import { BookingService } from '@/services/bookingService';
-import { ProviderProfileDetails, ProviderCategory, ProviderMonthlyCalendar, AvailabilitySlot, CreateBookingRequest } from '@/types/api';
+import React, { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Toaster, toast } from 'sonner'
+
+import { ProviderService } from '@/services/providerService'
+import { BookingService } from '@/services/bookingService'
+import type {
+    ProviderProfileDetails,
+    ProviderCategory,
+    ProviderMonthlyCalendar,
+    AvailabilitySlot,
+    CreateBookingRequest,
+} from '@/types/api'
+
 import BookingCalendar from '@/components/booking-calender'
 import TimeSlotPicker from '@/components/time-slot-picker'
 import BookingSummary from '@/components/booking-summary'
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SpecialInstructionsInput from '@/components/special-instructions-input'
 
-interface BookingPageProps {
-    // In Next.js 15/React 19, params is a Promise and should be unwrapped using React.use
-    params: Promise<{ userId: string }>;
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+
+// In Next.js 15 / React 19, route params are async; `use()` can unwrap a promise in render.
+// Keep this page a Client Component to re-use existing client-only widgets.
+interface PageProps {
+    params: Promise<{ userId: string }>
 }
 
-export default function CreateBookingPage({ params }: BookingPageProps) {
-    const router = useRouter();
-    // Unwrap params per Next.js guidance to avoid deprecation warning
-    const { userId } = React.use(params);
+export default function CreateBookingPage({ params }: PageProps) {
+    const router = useRouter()
+    const { userId } = React.use(params)
 
-    // --- State Management ---
-    const [profile, setProfile] = useState<ProviderProfileDetails | null>(null);
-    const [calendarData, setCalendarData] = useState<ProviderMonthlyCalendar | null>(null);
-    const [dailySlots, setDailySlots] = useState<{ id: string; day: string; available: boolean; slots: AvailabilitySlot[] } | null>(null);
-    const [providerId, setProviderId] = useState<string>('');
-    const [selectedCategory, setSelectedCategory] = useState<ProviderCategory | null>(null);
-    const [selectedDate, setSelectedDate] = useState<string>('');
-    const [selectedSlots, setSelectedSlots] = useState<AvailabilitySlot[]>([]);
-    const [specialInstructions, setSpecialInstructions] = useState<string>('');
+    // --- State ---
+    const [profile, setProfile] = useState<ProviderProfileDetails | null>(null)
+    const [calendarData, setCalendarData] = useState<ProviderMonthlyCalendar | null>(
+        null,
+    )
+    const [providerId, setProviderId] = useState('')
+    const [dailySlots, setDailySlots] = useState<
+        | { id: string; day: string; available: boolean; slots: AvailabilitySlot[] }
+        | null
+    >(null)
 
-    const [currentStep, setCurrentStep] = useState<number>(1); // 1: Category, 2: Date, 3: Time, 4: Summary/Confirm
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
-    const [bookingSuccess, setBookingSuccess] = useState<boolean>(false);
-    const [bookingResponse, setBookingResponse] = useState<any>(null); // Adjust type if needed
+    const [selectedCategory, setSelectedCategory] =
+        useState<ProviderCategory | null>(null)
+    const [selectedDate, setSelectedDate] = useState('')
+    const [selectedSlots, setSelectedSlots] = useState<AvailabilitySlot[]>([])
+    const [specialInstructions, setSpecialInstructions] = useState('')
 
-    // --- Data Fetching ---
+    const [loading, setLoading] = useState(false)
+    const [creating, setCreating] = useState(false)
+
+    // --- Derived helpers ---
+    const minutesBetween = (start: string, end: string) => {
+        const [sh, sm] = start.split(':').map(Number)
+        const [eh, em] = end.split(':').map(Number)
+        return (eh * 60 + em) - (sh * 60 + sm)
+    }
+
+    const totalMinutes = useMemo(
+        () => selectedSlots.reduce((sum, s) => sum + minutesBetween(s.startTime, s.endTime), 0),
+        [selectedSlots],
+    )
+
+    const hourlyRate = selectedCategory?.hourlyRate ?? 0
+    const totalPrice = useMemo(() => {
+        const hours = totalMinutes / 60
+        return Math.max(0, Math.round(hours * hourlyRate * 100) / 100)
+    }, [totalMinutes, hourlyRate])
+
+    const isReadyToCreate = useMemo(() => {
+        return (
+            !!profile?.providerId &&
+            !!selectedCategory &&
+            !!selectedDate &&
+            selectedSlots.length > 0
+        )
+    }, [profile?.providerId, selectedCategory, selectedDate, selectedSlots])
+
+    // --- Data fetching ---
     useEffect(() => {
-        const fetchProfile = async () => {
-
-            if (!userId) return;
-            setLoading(true);
-            setError(null);
+        let active = true
+        const run = async () => {
+            if (!userId) return
+            setLoading(true)
             try {
-                const response = await ProviderService.getProviderProfile(userId);
-                if (!response.success) throw new Error(response.message || 'Failed to fetch provider profile');
-                setProfile(response.payload);
-                setProviderId(response.payload.providerId);
-            } catch (err: any) {
-                console.error('Failed to fetch provider profile:', err);
-                setError(err.message || 'Failed to load provider information.');
+                const res = await ProviderService.getProviderProfile(userId)
+                if (!res?.success) throw new Error(res?.message ?? 'Unable to load provider')
+                if (!active) return
+                setProfile(res.payload)
+                setProviderId(res.payload.providerId)
+            } catch (e: any) {
+                toast.error(e?.message ?? 'Failed to load provider information')
             } finally {
-                setLoading(false);
+                setLoading(false)
             }
-        };
-        fetchProfile();
-    }, [userId]);
+        }
+        run()
+        return () => {
+            active = false
+        }
+    }, [userId])
 
     useEffect(() => {
         const fetchCalendar = async () => {
-            if (!providerId || currentStep < 2) return;
-            setLoading(true);
-            setError(null);
+            if (!profile?.providerId) return
             try {
-                const response = await BookingService.getMonthlyCalendar(providerId);
-                if (!response.success) throw new Error(response.message || 'Failed to fetch calendar');
-                setCalendarData(response.payload);
-            } catch (err: any) {
-                console.error('Failed to fetch calendar:', err);
-                setError(err.message || 'Failed to load calendar data.');
-            } finally {
-                setLoading(false);
+                const res = await BookingService.getMonthlyCalendar(profile.providerId)
+                if (!res?.success) throw new Error(res?.message ?? 'Failed to load calendar')
+                setCalendarData(res.payload)
+            } catch (e: any) {
+                toast.error(e?.message ?? 'Unable to load calendar')
             }
-        };
-        fetchCalendar();
-    }, [providerId, currentStep]); // Fetch when providerId is known and step advances to 2
+        }
+        fetchCalendar()
+    }, [profile?.providerId])
 
     useEffect(() => {
-        const fetchDailySlots = async () => {
-            if (!providerId || !selectedDate || currentStep < 3) return;
-            setLoading(true);
-            setError(null);
+        const fetchDaily = async () => {
+            if (!profile?.providerId || !selectedDate) return
             try {
-                const response = await BookingService.getDailyAvailability(providerId, selectedDate);
-                if (!response.success) throw new Error(response.message || 'Failed to fetch daily slots');
-                setDailySlots(response.payload);
-                setSelectedSlots([]); // Reset selected slots when date changes
-            } catch (err: any) {
-                console.error('Failed to fetch daily slots:', err);
-                setError(err.message || 'Failed to load available time slots for this date.');
-            } finally {
-                setLoading(false);
+                const res = await BookingService.getDailyAvailability(
+                    profile.providerId,
+                    selectedDate,
+                )
+                if (!res?.success)
+                    throw new Error(res?.message ?? 'Failed to load availability')
+                setDailySlots(res.payload)
+                setSelectedSlots([]) // clear previous day selection
+            } catch (e: any) {
+                toast.error(e?.message ?? 'Unable to load time slots for this date')
             }
-        };
-        fetchDailySlots();
-    }, [providerId, selectedDate, currentStep]); // Fetch when date is selected and step advances to 3
+        }
+        fetchDaily()
+    }, [profile?.providerId, selectedDate])
 
     // --- Handlers ---
-    const handleCategorySelect = (categoryId: string) => {
-        const category = profile?.categories.find(c => c.id === categoryId) || null;
-        setSelectedCategory(category);
-        // Reset subsequent steps when category changes
-        setSelectedDate('');
-        setSelectedSlots([]);
-        setDailySlots(null);
-    };
+    const onCategoryChange = (categoryId: string) => {
+        const cat = profile?.categories.find((c) => c.id === categoryId) ?? null
+        setSelectedCategory(cat)
+    }
 
-    const handleDateSelect = (dateString: string) => {
-        setSelectedDate(dateString);
-        // Reset slots when date changes
-        setSelectedSlots([]);
-        setDailySlots(null);
-    };
+    const onDateSelect = (dateString: string) => {
+        setSelectedDate(dateString)
+    }
 
-    const handleSlotSelect = (slots: AvailabilitySlot[]) => {
-        setSelectedSlots(slots);
-    };
+    const onSlotsChange = (slots: AvailabilitySlot[]) => setSelectedSlots(slots)
 
-    const handleInstructionsChange = (value: string) => {
-        setSpecialInstructions(value);
-    };
+    const onInstructionsChange = (val: string) => setSpecialInstructions(val)
 
-    const handleNext = () => {
-        if (currentStep === 1 && !selectedCategory) {
-            setError("Please select a service category.");
-            return;
+    const validateBeforeCreate = () => {
+        if (!profile?.providerId) {
+            toast.warning('Provider information is missing.')
+            return false
         }
-        if (currentStep === 2 && !selectedDate) {
-            setError("Please select a date.");
-            return;
+        if (!selectedCategory) {
+            toast.warning('Please select a service category.')
+            return false
         }
-        if (currentStep === 3 && selectedSlots.length === 0) {
-            setError("Please select at least one time slot.");
-            return;
+        if (!selectedDate) {
+            toast.warning('Please select a date.')
+            return false
         }
-        setError(null);
-        setCurrentStep(prev => prev + 1);
-    };
-
-    const handleBack = () => {
-        setError(null);
-        setCurrentStep(prev => Math.max(1, prev - 1)); // Don't go below step 1
-    };
-
-    const handleConfirmBooking = async () => {
-        if (!providerId || !selectedCategory || selectedSlots.length === 0 || !selectedDate || !profile) {
-            setError("Missing required booking information.");
-            return;
+        if (selectedSlots.length === 0) {
+            toast.warning('Please select at least one time slot.')
+            return false
         }
+        return true
+    }
 
-        setLoading(true);
-        setError(null);
+    const onCreateBooking = async () => {
+        if (!validateBeforeCreate()) return
+
+        setCreating(true)
         try {
-            const bookingData: CreateBookingRequest = {
-                providerId, // provider's providerId from route
-                userId: userId || profile.userId, // prefer param userId; fallback to profile
-                categoryId: selectedCategory.id,
+            const payload: CreateBookingRequest = {
+                providerId: profile!.providerId,
+                userId: profile!.userId, // adjust if your API expects a different user id
+                categoryId: selectedCategory!.id,
                 specialInstructions,
-                bookingWindows: selectedSlots.map(slot => ({
-                    date: selectedDate, // Assuming all selected slots are for the same date
-                    startTime: slot.startTime,
-                    endTime: slot.endTime
-                }))
-            };
+                bookingWindows: selectedSlots.map((s) => ({
+                    date: selectedDate,
+                    startTime: s.startTime,
+                    endTime: s.endTime,
+                })),
+            }
 
-            const response = await BookingService.createBooking(bookingData);
-            if (!response.success) throw new Error(response.message || 'Booking creation failed');
-            setBookingSuccess(true);
-            setBookingResponse(response);
-            // Optionally redirect or show success message
-            // router.push('/client/bookings'); // Redirect to bookings page
-        } catch (err: any) {
-            console.error('Booking failed:', err);
-            setError(err.message || 'Failed to create booking. Please try again.');
+            const res = await BookingService.createBooking(payload)
+            if (!res?.success) throw new Error(res?.message ?? 'Booking creation failed')
+
+            toast.success('Booking created successfully!')
+            router.push('/client/bookings')
+        } catch (e: any) {
+            toast.error(e?.message ?? 'Failed to create booking. Please try again.')
         } finally {
-            setLoading(false);
+            setCreating(false)
         }
-    };
-
-    // --- Rendering ---
-    if (!providerId) {
-        return <div className="container mx-auto p-4">Invalid provider ID.</div>;
     }
 
-    if (loading && currentStep === 1) { // Only show initial loading for profile
-        return <div className="container mx-auto p-4">Loading provider information...</div>;
-    }
-
-    if (error && currentStep === 1) { // Show initial error for profile fetch
-        return (
-            <div className="container mx-auto p-4">
-                <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-                <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
-            </div>
-        );
-    }
-
-    if (!profile) {
-        return <div className="container mx-auto p-4">Provider information could not be loaded.</div>;
-    }
-
-    if (bookingSuccess) {
-        return (
-            <div className="container mx-auto p-4">
-                <Card className="max-w-md mx-auto mt-10">
-                    <CardHeader>
-                        <CardTitle className="text-center text-green-600">Booking Confirmed!</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-center">Your booking has been successfully created.</p>
-                        <p className="text-center mt-2">Booking ID: {bookingResponse?.payload?.bookingId || 'N/A'}</p>
-                        <Button onClick={() => router.push('/client/bookings')} className="w-full mt-4">
-                            View My Bookings
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
+    // --- UI ---
     return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-6">Book {profile.firstName} {profile.lastName}</h1>
+        <div className="min-h-screen bg-muted/20">
+            <div className="container mx-auto p-4 lg:p-8">
+                <Toaster position="top-right" richColors closeButton />
 
-            {/* Step 1: Category Selection */}
-            {currentStep === 1 && (
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle>Select Service Category</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <Label htmlFor="category-select">Category</Label>
-                            <Select onValueChange={handleCategorySelect} value={selectedCategory?.id || ''}>
-                                <SelectTrigger id="category-select" className="w-full">
-                                    <SelectValue placeholder="Select a category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {profile.categories.map((category) => (
-                                        <SelectItem key={category.id} value={category.id}>
-                                            {category.name} (${category.hourlyRate}/hr)
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                {/* Header */}
+                <div className="mb-8 rounded-2xl bg-gradient-to-tr from-primary/10 via-accent/10 to-background p-6 shadow-sm ring-1 ring-border">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">
+                                {profile ? (
+                                    <>
+                                        Book{' '}
+                                        <span className="text-primary">
+                                            {profile.firstName} {profile.lastName}
+                                        </span>
+                                    </>
+                                ) : (
+                                    'Book a Provider'
+                                )}
+                            </h1>
+                            <p className="mt-2 text-muted-foreground">
+                                Follow the steps below to secure your booking.
+                            </p>
                         </div>
-                    </CardContent>
-                </Card>
-            )}
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    setSelectedCategory(null)
+                                    setSelectedDate('')
+                                    setSelectedSlots([])
+                                    setSpecialInstructions('')
+                                    setDailySlots(null)
+                                    toast.info('Selection cleared')
+                                }}
+                            >
+                                Clear All
+                            </Button>
+                            <Button
+                                size="lg"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                onClick={onCreateBooking}
+                                disabled={creating || loading || !isReadyToCreate}
+                            >
+                                {creating ? 'Creating…' : 'Create Booking'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
 
-            {/* Step 2: Date Selection */}
-            {currentStep === 2 && calendarData && (
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle>Select Date</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <BookingCalendar
-                            providerId={providerId}
-                            calendarData={calendarData}
-                            onDateSelect={handleDateSelect}
-                        />
-                    </CardContent>
-                </Card>
-            )}
+                {/* Content */}
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* Left: Inputs */}
+                    <div className="space-y-8 lg:col-span-2">
+                        {/* Step 1: Category */}
+                        <Card className="transition-all hover:shadow-lg">
+                            <CardHeader>
+                                <CardTitle>
+                                    <span className="mr-2 rounded-full bg-primary px-3 py-1 text-sm text-primary-foreground">
+                                        1
+                                    </span>
+                                    Service Category
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <Label htmlFor="category">
+                                    What service do you need?
+                                </Label>
+                                <Select
+                                    value={selectedCategory?.id ?? ''}
+                                    onValueChange={onCategoryChange}
+                                    disabled={loading || !profile}
+                                >
+                                    <SelectTrigger id="category" className="w-full">
+                                        <SelectValue
+                                            placeholder={
+                                                loading
+                                                    ? 'Loading categories…'
+                                                    : 'Select a service'
+                                            }
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {profile?.categories?.map((c) => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {c.name} (${c.hourlyRate}/hr)
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </CardContent>
+                        </Card>
 
-            {/* Step 3: Time Slot Selection */}
-            {currentStep === 3 && dailySlots && (
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle>Select Time Slot</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <TimeSlotPicker
-                            date={selectedDate}
-                            slots={dailySlots.slots}
-                            selectedSlots={selectedSlots}
-                            onSlotSelect={handleSlotSelect}
-                        />
-                    </CardContent>
-                </Card>
-            )}
+                        {/* Step 2: Date & Time */}
+                        <Card className="transition-all hover:shadow-lg">
+                            <CardHeader>
+                                <CardTitle>
+                                    <span className="mr-2 rounded-full bg-primary px-3 py-1 text-sm text-primary-foreground">
+                                        2
+                                    </span>
+                                    Choose Date &amp; Time
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div>
+                                    <Label>Choose a date</Label>
+                                    {calendarData ? (
+                                        <BookingCalendar
+                                            providerId={profile?.providerId ?? ''}
+                                            calendarData={calendarData}
+                                            selectedDate={selectedDate}
+                                            onDateSelect={onDateSelect}
+                                        />
+                                    ) : (
+                                        <div className="mt-2 text-sm text-muted-foreground">
+                                            {loading
+                                                ? 'Loading calendar…'
+                                                : 'Calendar not available'}
+                                        </div>
+                                    )}
+                                </div>
+                                {selectedDate && (
+                                    <div>
+                                        <Label>Pick available time slots for {selectedDate}</Label>
+                                        {dailySlots ? (
+                                            <TimeSlotPicker
+                                                date={selectedDate}
+                                                slots={dailySlots.slots}
+                                                selectedSlots={selectedSlots}
+                                                onSlotSelect={onSlotsChange}
+                                            />
+                                        ) : (
+                                            <div className="mt-2 text-sm text-muted-foreground">
+                                                Loading available slots…
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
-            {/* Step 4: Summary & Confirmation */}
-            {currentStep === 4 && profile && selectedCategory && selectedDate && selectedSlots.length > 0 && (
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle>Confirm Booking</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <BookingSummary
-                            provider={profile}
-                            category={selectedCategory}
-                            date={selectedDate}
-                            slots={selectedSlots}
-                            specialInstructions={specialInstructions}
-                            onInstructionsChange={handleInstructionsChange}
-                        />
-                    </CardContent>
-                </Card>
-            )}
+                        {/* Step 3: Notes */}
+                        <Card className="transition-all hover:shadow-lg">
+                            <CardHeader>
+                                <CardTitle>
+                                    <span className="mr-2 rounded-full bg-primary px-3 py-1 text-sm text-primary-foreground">
+                                        3
+                                    </span>
+                                    Special Instructions
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <SpecialInstructionsInput
+                                    value={specialInstructions}
+                                    onChange={onInstructionsChange}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
 
-            {/* Error Message */}
-            {error && (
-                <Alert variant="destructive" className="mb-4">
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between">
-                <Button onClick={handleBack} disabled={currentStep === 1 || loading} variant="outline">
-                    Back
-                </Button>
-                {currentStep < 4 ? (
-                    <Button onClick={handleNext} disabled={loading}>
-                        {loading ? 'Loading...' : 'Next'}
-                    </Button>
-                ) : (
-                    <Button onClick={handleConfirmBooking} disabled={loading} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                        {loading ? 'Creating Booking...' : 'Confirm Booking'}
-                    </Button>
-                )}
+                    {/* Right: Summary sticky */}
+                    <div className="lg:col-span-1">
+                        <div className="lg:sticky lg:top-8">
+                            <Card className="shadow-lg ring-2 ring-primary/50">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">
+                                        Booking Summary
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <BookingSummary
+                                        provider={profile}
+                                        category={selectedCategory}
+                                        date={selectedDate}
+                                        slots={selectedSlots}
+                                        totalMinutes={totalMinutes}
+                                        totalPrice={totalPrice}
+                                    />
+                                    <Button
+                                        size="lg"
+                                        className="mt-6 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                                        onClick={onCreateBooking}
+                                        disabled={creating || loading || !isReadyToCreate}
+                                    >
+                                        {creating
+                                            ? 'Creating…'
+                                            : 'Confirm & Create Booking'}
+                                    </Button>
+                                    {!isReadyToCreate && (
+                                        <p className="mt-2 text-center text-xs text-muted-foreground">
+                                            Please complete all steps to proceed.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    );
+    )
 }
