@@ -67,6 +67,7 @@ export class BookingService {
     // Adjust payload type if needed
     try {
       // bookingData should match the structure defined in CreateBookingRequest
+      console.log("full url", apiClient.getUri() + "/bookings/create");
       const response = await apiClient.post<BaseApiResponse<any>>(
         "/bookings/create",
         bookingData
@@ -98,6 +99,50 @@ export class BookingService {
       console.error(`Error fetching bookings for user ${userId}:`, error);
       throw error;
     }
+  }
+
+  // Get all bookings with pagination (new method for the updated flow)
+  static async getAllBookings(
+    userId: string,
+    pageNumber: number = 1,
+    pageSize: number = 10
+  ): Promise<BaseApiResponse<any[]>> {
+    try {
+      // Ensure userId is passed as a query parameter
+      const params = { userId, pageNumber, pageSize };
+      const response = await apiClient.get<BaseApiResponse<any[]>>(
+        "/bookings/all",
+        { params }
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching all bookings for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  static async getBookingById(
+    bookingId: string
+  ): Promise<BaseApiResponse<any>> {
+    try {
+      console.log("full url", apiClient.getUri() + `/bookings/${bookingId}`);
+      const response = await apiClient.get(`/bookings/${bookingId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching booking ${bookingId}:`, error);
+      throw error;
+    }
+  }
+
+  static async cancelBooking(
+    bookingId: string,
+    reason: string
+  ): Promise<BaseApiResponse<any>> {
+    return await apiClient.post(`/bookings/${bookingId}/cancel`, {
+      reason,
+      notifyOtherParty: true,
+      forceCancel: false,
+    });
   }
 }
 
