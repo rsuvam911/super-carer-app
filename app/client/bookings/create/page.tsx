@@ -30,29 +30,66 @@ export default function CreateBookingPage() {
   const router = useRouter();
   const [providers, setProviders] = useState<ProviderListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("rating");
   const pageSize = 12;
 
+  // Debounce search term to avoid too many API calls
   useEffect(() => {
-    fetchProviders();
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch providers when filters change (reset to page 1)
+  useEffect(() => {
+    setPage(1);
+    setProviders([]);
+    fetchProvidersWithFilters(1);
+  }, [debouncedSearchTerm, serviceTypeFilter, sortBy]);
+
+  // Fetch providers when page changes (for pagination)
+  useEffect(() => {
+    if (page > 1) {
+      fetchProvidersWithFilters(page);
+    }
   }, [page]);
 
-  const fetchProviders = async () => {
-    setLoading(true);
+  const fetchProvidersWithFilters = async (pageNumber: number) => {
+    // Set appropriate loading state
+    if (pageNumber === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
 
     try {
+      // Prepare filters for API call
+      const filters: Record<string, any> = {};
+      if (debouncedSearchTerm.trim()) {
+        filters.search = debouncedSearchTerm.trim();
+      }
+      if (serviceTypeFilter !== "all") {
+        filters.serviceType = serviceTypeFilter;
+      }
+      if (sortBy) {
+        filters.sortBy = sortBy;
+      }
       const response: BaseApiResponse<ProviderListItem[]> =
-        await ProviderService.getProviders(page, pageSize);
+        await ProviderService.getProviders(pageNumber, pageSize, filters);
 
       if (response.success) {
-        // Append results for pagination instead of replacing
-        if (page === 1) {
+        // Reset results when it's page 1, append when it's subsequent pages
+        if (pageNumber === 1) {
           setProviders(response.payload || []);
         } else {
           setProviders((prev) => [...prev, ...(response.payload || [])]);
@@ -66,6 +103,7 @@ export default function CreateBookingPage() {
       setError("Failed to load care providers. Please try again.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -81,8 +119,13 @@ export default function CreateBookingPage() {
     router.push(`/client/bookings/book/${userId}`);
   };
 
-  const handleLoadMore = () => {
-    if (hasNextPage && !loading) {
+  const handleLoadMore = (e?: React.MouseEvent) => {
+    // Prevent any default behavior that might cause page reload
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    if (hasNextPage && !loading && !loadingMore) {
+      console.log('Loading more providers, current page:', page);
       setPage((prev) => prev + 1);
     }
   };
@@ -90,38 +133,22 @@ export default function CreateBookingPage() {
   const handleRefresh = () => {
     setPage(1);
     setProviders([]);
-    fetchProviders();
+    fetchProvidersWithFilters(1);
   };
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
+    // Note: debounced search will handle the API call
   };
 
-  // Filter and sort providers
-  const filteredAndSortedProviders = providers.filter((provider) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      provider.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (provider.categories &&
-        provider.categories.some((spec) =>
-          spec.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ));
-
-    const matchesServiceType =
-      serviceTypeFilter === "all" ||
-      (provider.categories &&
-        provider.categories.some((spec) =>
-          spec.name.toLowerCase().includes(serviceTypeFilter.toLowerCase())
-        ));
-
-    return matchesSearch && matchesServiceType;
-  });
-
-  // Get unique service types for filter
-  const serviceTypes = Array.from(
-    new Set(providers.flatMap((provider) => provider.categories || []))
-  );
+  // Get unique service types for filter (this will need to come from API or be static)
+  const serviceTypes = [
+    { id: "nursing", name: "Nursing" },
+    { id: "companionship", name: "Companionship" },
+    { id: "personal-care", name: "Personal Care" },
+    { id: "respite-care", name: "Respite Care" },
+    { id: "dementia-care", name: "Dementia Care" },
+  ];
 
   return (
     <div className="container mx-auto p-6">
@@ -161,7 +188,9 @@ export default function CreateBookingPage() {
             {/* Service Type Filter */}
             <Select
               value={serviceTypeFilter}
-              onValueChange={setServiceTypeFilter}
+              onValueChange={(value) => {
+                setServiceTypeFilter(value);
+              }}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Service Type" />
@@ -177,7 +206,12 @@ export default function CreateBookingPage() {
             </Select>
 
             {/* Sort By */}
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select
+              value={sortBy}
+              onValueChange={(value) => {
+                setSortBy(value);
+              }}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -207,9 +241,8 @@ export default function CreateBookingPage() {
       {!loading && (
         <div className="mb-4">
           <p className="text-sm text-gray-600">
-            Showing {filteredAndSortedProviders.length} of {providers.length}{" "}
-            care providers
-            {searchTerm && ` matching "${searchTerm}"`}
+            Showing {providers.length} care providers
+            {debouncedSearchTerm && ` matching "${debouncedSearchTerm}"`}
             {serviceTypeFilter !== "all" && ` in ${serviceTypeFilter}`}
           </p>
         </div>
@@ -238,7 +271,7 @@ export default function CreateBookingPage() {
       )}
 
       {/* Empty State */}
-      {!loading && !error && filteredAndSortedProviders.length === 0 && (
+      {!loading && !error && providers.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Search className="h-16 w-16 text-gray-300 mb-4" />
@@ -258,10 +291,10 @@ export default function CreateBookingPage() {
       )}
 
       {/* Providers Grid */}
-      {!loading && !error && filteredAndSortedProviders.length > 0 && (
+      {!loading && !error && providers.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-            {filteredAndSortedProviders.map((provider) => (
+            {providers.map((provider) => (
               <ProviderCard
                 key={provider.userId}
                 provider={provider}
@@ -275,15 +308,16 @@ export default function CreateBookingPage() {
           {hasNextPage && (
             <div className="flex justify-center">
               <Button
+                type="button"
                 onClick={handleLoadMore}
-                disabled={loading}
+                disabled={loading || loadingMore}
                 variant="outline"
                 className="px-8 py-2"
               >
-                {loading ? (
+                {loadingMore ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    Loading...
+                    Loading More...
                   </>
                 ) : (
                   "Load More Providers"

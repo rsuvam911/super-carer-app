@@ -10,7 +10,7 @@ import {
 export class ProviderService {
   // 1. Get list of care providers
   static async getProviders(
-    page: number = 1,
+    pageNumber: number = 1,
     pageSize: number = 10,
     filters: Record<string, any> = {}
   ): Promise<BaseApiResponse<ProviderListItem[]>> {
@@ -18,12 +18,14 @@ export class ProviderService {
       const response = await apiClient.get<BaseApiResponse<ProviderListItem[]>>(
         "/account/profiles",
         {
-          params: { page, pageSize, ...filters },
+          params: { pageNumber, pageSize, ...filters },
           headers: {
             UserType: "CareProvider",
           },
         }
       );
+      // Format and log response
+      console.log("Provider list response:", response.data);
       return response.data; // Assuming standard response structure { success, payload, meta, ... }
     } catch (error) {
       console.error("Error fetching providers:", error);

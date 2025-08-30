@@ -124,7 +124,7 @@ export default function Sidebar() {
           <div className="relative">
             <div className="w-40 h-24 flex items-center justify-center">
               <Image
-                src="/super-carer-app-logo.svg"
+                src="/care_logo.svg"
                 alt="Super Carer App Logo"
                 width={160}
                 height={96}
@@ -147,11 +147,10 @@ export default function Sidebar() {
                 <Link
                   key={href}
                   href={fullHref}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
-                    active
-                      ? "bg-[#00C2CB]/20 text-[#00C2CB]"
-                      : "text-gray-300 hover:bg-[#2a3366]"
-                  }`}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm ${active
+                    ? "bg-[#00C2CB]/20 text-[#00C2CB]"
+                    : "text-gray-300 hover:bg-[#2a3366]"
+                    }`}
                 >
                   <Icon className="mr-3 h-5 w-5" />
                   {label}
@@ -173,11 +172,10 @@ export default function Sidebar() {
                   <Link
                     key={href}
                     href={fullHref}
-                    className={`flex items-center px-3 py-2 rounded-md text-sm ${
-                      active
-                        ? "bg-[#00C2CB]/20 text-[#00C2CB]"
-                        : "text-gray-300 hover:bg-[#2a3366]"
-                    }`}
+                    className={`flex items-center px-3 py-2 rounded-md text-sm ${active
+                      ? "bg-[#00C2CB]/20 text-[#00C2CB]"
+                      : "text-gray-300 hover:bg-[#2a3366]"
+                      }`}
                   >
                     <Icon className="mr-3 h-5 w-5" />
                     {label}
@@ -199,11 +197,10 @@ export default function Sidebar() {
                 <Link
                   key={href}
                   href={fullHref}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
-                    active
-                      ? "bg-[#00C2CB]/20 text-[#00C2CB]"
-                      : "text-gray-300 hover:bg-[#2a3366]"
-                  }`}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm ${active
+                    ? "bg-[#00C2CB]/20 text-[#00C2CB]"
+                    : "text-gray-300 hover:bg-[#2a3366]"
+                    }`}
                 >
                   <Icon className="mr-3 h-5 w-5" />
                   {label}

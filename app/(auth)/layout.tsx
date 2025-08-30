@@ -15,9 +15,9 @@ export default function AuthLayout({
       <div className="hidden lg:flex lg:w-1/2 bg-[#1a2352] flex-col justify-center items-center p-12">
         <div className="max-w-md">
           <Image
-            src="/super-carer-app-logo.svg"
+            src="/care_logo.svg"
             alt="Super Carer App Logo"
-            width={300}
+            width={450}
             height={180}
             priority
             className="mb-8"
