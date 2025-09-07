@@ -10,7 +10,7 @@ import { TokenDebugger } from "./token-debug";
 
 // Define API base URL
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://careappapi.intellexio.com";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://careappapi.intellexio.com/api/v1";
 
 // Create axios instance with default config
 const api = axios.create({
@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.post("/api/v1/auth/login", {
+      const response = await api.post("/auth/login", {
         email,
         password,
       });
@@ -209,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.post("/api/v1/auth/register", userData);
+      const response = await api.post("/auth/register", userData);
       const { payload } = response.data;
 
       // Use token manager to handle tokens
@@ -239,14 +239,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.post("/api/v1/auth/verify-otp", {
+      const response = await api.post("/auth/verify-otp", {
         email,
         emailOtpCode: otp,
         verificationType: "Registration",
       });
 
       // Get user information after successful verification
-      const userResponse = await api.get("/api/v1/auth/login");
+      const userResponse = await api.get("/auth/login");
       const userData = userResponse.data.payload;
 
       // Set user data and keep tokens
@@ -294,7 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = tokenManager.getAccessToken();
     try {
       if (token) {
-        await api.post("/api/v1/auth/logout", { token });
+        await api.post("/auth/logout", { token });
       }
       toast.success("Logged out successfully");
     } catch (error: any) {

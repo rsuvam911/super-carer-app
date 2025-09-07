@@ -40,7 +40,7 @@ export interface ProviderProfileBase {
   categories: ProviderCategory[];
   dateOfBirth: string; // ISO 8601
   profilePictureUrl: string;
-  primaryAddress: any | null; // Define more specifically if structure is known
+  primaryAddress: Address | null; // Now properly typed
   documents: any | null; // Define more specifically if structure is known
 }
 
@@ -62,6 +62,25 @@ export interface TravelExperience {
   maxTravelDistance: number | null;
   preferredTransportation: string | null;
   travelLocations: string | null; // Could be an array if structure is known
+}
+
+export interface Address {
+  streetAddress: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  label: string | null;
+}
+
+export interface DocumentMetadata {
+  documentType: string;
+  issuer: string;
+  country: string;
+  certificationType: string;
+  certificationNumber: string;
+  expiryDate: string;
 }
 
 export interface Document {
@@ -102,7 +121,7 @@ export interface ProviderProfileDetails {
   // hourlyRate: number;
   dateOfBirth: string; // ISO 8601
   profilePictureUrl: string;
-  primaryAddress: any | null; // Define more specifically if structure is known
+  primaryAddress: Address | null; // Now properly typed
   documents: Document[];
   bio: string;
   providesOvernight: boolean;

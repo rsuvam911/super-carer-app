@@ -1,15 +1,191 @@
 "use client"
 
-import { useState } from "react"
-import { User, Mail, Phone, Lock, Bell, CreditCard, Globe, Shield } from "lucide-react"
+import { useState, useEffect } from "react"
+import { User, Mail, Phone, Lock, Bell, CreditCard, Globe, Shield, Briefcase, FileText, MapPin, Calendar, Star, Award, Clock } from "lucide-react"
+import { toast } from "sonner"
+import ProviderService from "@/services/providerService"
+import { ProviderProfileDetails, ProviderCategory, Document } from "@/types/api"
+import CareCategoriesSettings from "@/components/settings/care-categories-settings"
+import DocumentsSettings from "@/components/settings/documents-settings"
+import { useAuth } from "@/lib/auth-context"
+
+// Enhanced settings tab type
+type SettingsTab = 'profile' | 'categories' | 'documents' | 'notifications' | 'payment' | 'security';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("profile")
+  const { user, userRole, isAuthenticated, isLoading: authLoading } = useAuth()
+  const [activeTab, setActiveTab] = useState<SettingsTab>("profile")
+  const [profileData, setProfileData] = useState<ProviderProfileDetails | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch provider profile data when user is authenticated and has provider role
+  useEffect(() => {
+    if (isAuthenticated && user?.userId && userRole === 'care-provider' && !authLoading) {
+      fetchProviderProfile(user.userId)
+    } else if (!authLoading && !isAuthenticated) {
+      setError("Please log in to view your settings")
+      setIsLoading(false)
+    } else if (!authLoading && userRole !== 'care-provider') {
+      setError("Access denied: This page is for care providers only")
+      setIsLoading(false)
+    }
+  }, [isAuthenticated, user?.userId, userRole, authLoading])
+
+  const fetchProviderProfile = async (userId: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await ProviderService.getProviderProfile(userId)
+      if (response.success) {
+        setProfileData(response.payload)
+      } else {
+        setError(response.message || "Failed to load profile data")
+        toast.error("Failed to load profile data")
+      }
+    } catch (error: any) {
+      console.error("Error fetching provider profile:", error)
+      setError("Failed to load profile data")
+      toast.error("Failed to load profile data")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle category updates
+  const handleCategoriesUpdate = async (categories: ProviderCategory[]) => {
+    if (!profileData) return
+
+    try {
+      await ProviderService.updateProviderCategories(profileData.providerId, categories)
+      setProfileData(prev => prev ? { ...prev, categories } : null)
+      toast.success("Categories updated successfully")
+    } catch (error: any) {
+      console.error("Error updating categories:", error)
+      throw error
+    }
+  }
+
+  // Handle document upload
+  const handleDocumentUpload = async (file: File, metadata: any) => {
+    if (!profileData) return
+
+    try {
+      const response = await ProviderService.uploadDocument(profileData.providerId, file, metadata)
+      if (response.success) {
+        setProfileData(prev => prev ? {
+          ...prev,
+          documents: [...prev.documents, response.payload]
+        } : null)
+        toast.success("Document uploaded successfully")
+      }
+    } catch (error: any) {
+      console.error("Error uploading document:", error)
+      throw error
+    }
+  }
+
+  // Handle document deletion
+  const handleDocumentDelete = async (documentId: string) => {
+    if (!profileData) return
+
+    try {
+      await ProviderService.deleteDocument(documentId)
+      setProfileData(prev => prev ? {
+        ...prev,
+        documents: prev.documents.filter(doc => doc.documentId !== documentId)
+      } : null)
+      toast.success("Document deleted successfully")
+    } catch (error: any) {
+      console.error("Error deleting document:", error)
+      throw error
+    }
+  }
 
   const renderTabContent = () => {
+    // Show loading if auth is still loading
+    if (authLoading) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00C2CB]"></div>
+          <span className="ml-2">Authenticating...</span>
+        </div>
+      )
+    }
+
+    // Show error if not authenticated or wrong role
+    if (!isAuthenticated || !user) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-500 mb-4">Please log in to access your settings</p>
+        </div>
+      )
+    }
+
+    if (userRole !== 'care-provider') {
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-500 mb-4">Access denied: This page is for care providers only</p>
+        </div>
+      )
+    }
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00C2CB]"></div>
+          <span className="ml-2">Loading...</span>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-500 mb-4">{error}</p>
+          {user?.userId ? (
+            <button
+              type="button"
+              onClick={() => fetchProviderProfile(user.userId)}
+              className="bg-[#00C2CB] text-white px-4 py-2 rounded-md hover:bg-[#00A5AD]"
+            >
+              Retry
+            </button>
+          ) : (
+            <p className="text-sm text-gray-500">Please log in to retry</p>
+          )}
+        </div>
+      )
+    }
+
+    if (!profileData) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No profile data available</p>
+        </div>
+      )
+    }
+
     switch (activeTab) {
       case "profile":
-        return <ProfileSettings />
+        return <ProfileSettings profileData={profileData} />
+      case "categories":
+        return (
+          <CareCategoriesSettings
+            categories={profileData.categories}
+            onUpdate={handleCategoriesUpdate}
+            isLoading={isLoading}
+          />
+        )
+      case "documents":
+        return (
+          <DocumentsSettings
+            documents={profileData.documents}
+            onUpload={handleDocumentUpload}
+            onDelete={handleDocumentDelete}
+            isLoading={isLoading}
+          />
+        )
       case "notifications":
         return <NotificationSettings />
       case "payment":
@@ -17,7 +193,7 @@ export default function SettingsPage() {
       case "security":
         return <SecuritySettings />
       default:
-        return <ProfileSettings />
+        return <ProfileSettings profileData={profileData} />
     }
   }
 
@@ -32,23 +208,43 @@ export default function SettingsPage() {
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab("profile")}
-            className={`px-6 py-4 text-sm font-medium flex items-center ${
-              activeTab === "profile"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === "profile"
+              ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             <User className="h-4 w-4 mr-2" />
             Profile
           </button>
 
           <button
+            onClick={() => setActiveTab("categories")}
+            className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === "categories"
+              ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
+          >
+            <Briefcase className="h-4 w-4 mr-2" />
+            Care Categories
+          </button>
+
+          <button
+            onClick={() => setActiveTab("documents")}
+            className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === "documents"
+              ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Documents
+          </button>
+
+          <button
             onClick={() => setActiveTab("notifications")}
-            className={`px-6 py-4 text-sm font-medium flex items-center ${
-              activeTab === "notifications"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === "notifications"
+              ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             <Bell className="h-4 w-4 mr-2" />
             Notifications
@@ -56,11 +252,10 @@ export default function SettingsPage() {
 
           <button
             onClick={() => setActiveTab("payment")}
-            className={`px-6 py-4 text-sm font-medium flex items-center ${
-              activeTab === "payment"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === "payment"
+              ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             <CreditCard className="h-4 w-4 mr-2" />
             Payment
@@ -68,11 +263,10 @@ export default function SettingsPage() {
 
           <button
             onClick={() => setActiveTab("security")}
-            className={`px-6 py-4 text-sm font-medium flex items-center ${
-              activeTab === "security"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === "security"
+              ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             <Shield className="h-4 w-4 mr-2" />
             Security
@@ -85,97 +279,304 @@ export default function SettingsPage() {
   )
 }
 
-function ProfileSettings() {
+function ProfileSettings({ profileData }: { profileData: ProviderProfileDetails }) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center">
-        <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mr-6">
-          <img src="/placeholder.svg?height=96&width=96" alt="Profile" className="w-full h-full object-cover" />
-        </div>
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Profile Header Section */}
+      <div className="bg-[#00C2CB] rounded-xl p-8 text-white">
+        <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+          <div className="relative">
+            <div className="w-28 h-28 rounded-full bg-white/20 overflow-hidden ring-4 ring-white/30">
+              <img
+                src={profileData.profilePictureUrl || "/placeholder.svg?height=112&width=112"}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
+              <User className="h-4 w-4 text-[#00C2CB]" />
+            </div>
+          </div>
 
-        <div>
-          <h2 className="text-lg font-medium">Rachel Green</h2>
-          <p className="text-gray-500 mb-3">Professional Caregiver</p>
+          <div className="text-center md:text-left flex-1">
+            <h2 className="text-2xl font-bold mb-2">{`${profileData.firstName} ${profileData.lastName}`}</h2>
+            <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
+              <div className="flex items-center justify-center md:justify-start">
+                <Award className="h-4 w-4 mr-2" />
+                <span className="text-white/90">Professional Caregiver</span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start">
+                <Star className="h-4 w-4 mr-2" />
+                <span className="text-white/90">{profileData.yearsExperience} years experience</span>
+              </div>
+            </div>
+            <p className="text-white/80 mt-3 text-sm leading-relaxed">{profileData.bio || "No bio available"}</p>
+          </div>
 
-          <div className="flex space-x-2">
-            <button className="bg-[#00C2CB] text-white px-4 py-2 rounded-md text-sm">Upload New Photo</button>
-            <button className="bg-gray-100 text-gray-600 px-4 py-2 rounded-md text-sm">Remove</button>
+          <div className="flex flex-col space-y-2">
+            <button type="button" className="bg-white text-[#00C2CB] px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+              Upload New Photo
+            </button>
+            <button type="button" className="bg-white/10 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-colors">
+              Remove Photo
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-medium mb-4">Personal Information</h3>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Personal Info */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Personal Information Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <User className="h-5 w-5 mr-2 text-[#00C2CB]" />
+                Personal Information
+              </h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      defaultValue={`${profileData.firstName} ${profileData.lastName}`}
+                      className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    />
+                  </div>
+                </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      defaultValue={profileData.email}
+                      className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="tel"
+                      defaultValue={profileData.phoneNumber}
+                      className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Gender</label>
+                  <select
+                    defaultValue={profileData.gender}
+                    className="px-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors bg-white"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Clock className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      defaultValue={profileData.yearsExperience}
+                      className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="date"
+                      defaultValue={profileData.dateOfBirth ? new Date(profileData.dateOfBirth).toISOString().split('T')[0] : ''}
+                      className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    />
+                  </div>
+                </div>
               </div>
-              <input
-                type="text"
-                defaultValue="Rachel Green"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-              />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" />
+          {/* Address Information Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <MapPin className="h-5 w-5 mr-2 text-[#00C2CB]" />
+                Address Information
+              </h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Street Address</label>
+                  <input
+                    type="text"
+                    defaultValue={profileData.primaryAddress?.streetAddress || ''}
+                    className="px-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    placeholder="Enter your street address"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">City</label>
+                  <input
+                    type="text"
+                    defaultValue={profileData.primaryAddress?.city || ''}
+                    className="px-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    placeholder="Enter your city"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">State/Province</label>
+                  <input
+                    type="text"
+                    defaultValue={profileData.primaryAddress?.state || ''}
+                    className="px-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    placeholder="Enter your state/province"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Postal Code</label>
+                  <input
+                    type="text"
+                    defaultValue={profileData.primaryAddress?.postalCode || ''}
+                    className="px-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
+                    placeholder="Enter your postal code"
+                  />
+                </div>
               </div>
-              <input
-                type="email"
-                defaultValue="rachel.green@example.com"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-              />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Phone className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="tel"
-                defaultValue="+1 (555) 123-4567"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-              />
+          {/* Bio Section Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <FileText className="h-5 w-5 mr-2 text-[#00C2CB]" />
+                Professional Bio
+              </h3>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Globe className="h-5 w-5 text-gray-400" />
+            <div className="p-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Tell us about yourself</label>
+                <textarea
+                  rows={5}
+                  defaultValue={profileData.bio}
+                  className="p-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors resize-none"
+                  placeholder="Share your experience, specialties, and what makes you a great caregiver..."
+                />
+                <p className="text-xs text-gray-500">Maximum 500 characters</p>
               </div>
-              <input
-                type="text"
-                defaultValue="New York, NY"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-              />
             </div>
           </div>
         </div>
 
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-          <textarea
-            rows={4}
-            defaultValue="Professional caregiver with over 5 years of experience in elderly and disability care. Certified in CPR and first aid. Passionate about providing compassionate and high-quality care to all clients."
-            className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-          />
-        </div>
+        {/* Right Column - Service Preferences & Quick Info */}
+        <div className="space-y-6">
+          {/* Quick Stats Card */}
+          <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Star className="h-5 w-5 mr-2 text-blue-600" />
+              Quick Stats
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Experience</span>
+                <span className="font-semibold text-blue-600">{profileData.yearsExperience} years</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Documents</span>
+                <span className="font-semibold text-blue-600">{profileData.documents?.length || 0} uploaded</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Categories</span>
+                <span className="font-semibold text-blue-600">{profileData.categories?.length || 0} active</span>
+              </div>
+            </div>
+          </div>
 
-        <div className="mt-6 flex justify-end">
-          <button className="bg-[#00C2CB] text-white px-6 py-2 rounded-md">Save Changes</button>
+          {/* Service Preferences Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Briefcase className="h-5 w-5 mr-2 text-[#00C2CB]" />
+                Service Preferences
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-100">
+                <div>
+                  <h5 className="font-medium text-gray-900">Overnight Care</h5>
+                  <p className="text-xs text-gray-600">Available for overnight services</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    defaultChecked={profileData.providesOvernight}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-100">
+                <div>
+                  <h5 className="font-medium text-gray-900">Live-in Care</h5>
+                  <p className="text-xs text-gray-600">Available for live-in services</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    defaultChecked={profileData.providesLiveIn}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <button type="button" className="w-full bg-[#00C2CB] text-white py-3 px-6 rounded-xl font-medium hover:bg-[#00A5AD] transition-colors">
+              Save All Changes
+            </button>
+            <button type="button" className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+              Reset to Default
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -398,7 +799,7 @@ function PaymentSettings() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button className="bg-[#00C2CB] text-white px-6 py-2 rounded-md">Save Changes</button>
+          <button type="button" className="bg-[#00C2CB] text-white px-6 py-2 rounded-md">Save Changes</button>
         </div>
       </div>
     </div>
