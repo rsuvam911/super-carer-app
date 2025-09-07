@@ -171,6 +171,143 @@ export class ProviderService {
       throw error;
     }
   }
+
+  // 9. Update provider profile
+  static async updateProviderProfile(
+    userId: string,
+    profileData: {
+      FirstName: string;
+      LastName: string;
+      Email: string;
+      PhoneNumber: string;
+      Gender: string;
+      DateOfBirth: string;
+      YearsExperience: number;
+      Bio?: string;
+      ProvidesOvernight?: boolean;
+      ProvidesLiveIn?: boolean;
+      PrimaryAddress: {
+        StreetAddress: string;
+        City: string;
+        State: string;
+        PostalCode: string;
+        Label?: string;
+        Latitude?: string;
+        Longitude?: string;
+      };
+      ProfilePicture?: File;
+      BufferDuration?: string;
+    }
+  ): Promise<BaseApiResponse<ProviderProfileDetails>> {
+    try {
+      const formData = new FormData();
+
+      // Add basic profile fields
+      formData.append("FirstName", profileData.FirstName);
+      formData.append("LastName", profileData.LastName);
+      formData.append("Email", profileData.Email);
+      formData.append("PhoneNumber", profileData.PhoneNumber);
+      formData.append("Gender", profileData.Gender);
+      formData.append("DateOfBirth", profileData.DateOfBirth);
+      formData.append(
+        "YearsExperience",
+        profileData.YearsExperience.toString()
+      );
+
+      // Add optional fields
+      if (profileData.Bio) {
+        formData.append("Bio", profileData.Bio);
+      }
+      if (profileData.ProvidesOvernight !== undefined) {
+        formData.append(
+          "ProvidesOvernight",
+          profileData.ProvidesOvernight.toString()
+        );
+      }
+      if (profileData.ProvidesLiveIn !== undefined) {
+        formData.append(
+          "ProvidesLiveIn",
+          profileData.ProvidesLiveIn.toString()
+        );
+      }
+      if (profileData.BufferDuration) {
+        formData.append("BufferDuration", profileData.BufferDuration);
+      }
+
+      // Add address fields
+      formData.append(
+        "PrimaryAddress.StreetAddress",
+        profileData.PrimaryAddress.StreetAddress
+      );
+      formData.append("PrimaryAddress.City", profileData.PrimaryAddress.City);
+      formData.append("PrimaryAddress.State", profileData.PrimaryAddress.State);
+      formData.append(
+        "PrimaryAddress.PostalCode",
+        profileData.PrimaryAddress.PostalCode
+      );
+      formData.append(
+        "PrimaryAddress.Label",
+        profileData.PrimaryAddress.Label || ""
+      );
+      formData.append(
+        "PrimaryAddress.Latitude",
+        profileData.PrimaryAddress.Latitude || ""
+      );
+      formData.append(
+        "PrimaryAddress.Longitude",
+        profileData.PrimaryAddress.Longitude || ""
+      );
+
+      // Add profile picture if provided
+      if (profileData.ProfilePicture) {
+        formData.append("ProfilePicture", profileData.ProfilePicture);
+      }
+
+      const response = await apiClient.put<
+        BaseApiResponse<ProviderProfileDetails>
+      >(`/account/users/${userId}/profile`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Usertype: "CareProvider",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating profile for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // 9. Attach care category to provider
+  static async attachCareCategory(
+    providerId: string,
+    categoryId: string,
+    categoryData: {
+      description: string;
+      hourlyRate: number;
+      experienceLevel: number;
+    }
+  ): Promise<BaseApiResponse<ProviderCategory>> {
+    try {
+      const response = await apiClient.put<BaseApiResponse<ProviderCategory>>(
+        `/carecategories/provider/${providerId}/update/${categoryId}`,
+        categoryData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Usertype: "CareProvider",
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Error attaching category ${categoryId} to provider ${providerId}:`,
+        error
+      );
+      throw error;
+    }
+  }
 }
 
 // Export as default or named, depending on your preference

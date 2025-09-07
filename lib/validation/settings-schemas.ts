@@ -3,6 +3,7 @@ import { z } from "zod";
 // Category form validation schema
 export const categorySchema = z.object({
   categoryName: z.string().min(1, "Category name is required"),
+  description: z.string().min(1, "Description is required"),
   hourlyRate: z
     .number()
     .min(1, "Hourly rate must be greater than 0")
@@ -17,10 +18,15 @@ export const categorySchema = z.object({
 export const documentSchema = z.object({
   file: z
     .instanceof(File)
-    .refine((file) => file.size <= 10 * 1024 * 1024, "File size must be less than 10MB")
     .refine(
-      (file) => 
-        ["application/pdf", "image/jpeg", "image/png", "image/jpg"].includes(file.type),
+      (file) => file.size <= 10 * 1024 * 1024,
+      "File size must be less than 10MB"
+    )
+    .refine(
+      (file) =>
+        ["application/pdf", "image/jpeg", "image/png", "image/jpg"].includes(
+          file.type
+        ),
       "File must be a PDF, JPEG, PNG, or JPG"
     ),
   documentType: z.enum(["Certificate", "License", "Qualification"], {

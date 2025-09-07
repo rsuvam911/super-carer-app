@@ -24,6 +24,22 @@ export interface ProviderCategory {
   name: string;
   hourlyRate: number;
   experienceLevel: number;
+  description?: string;
+}
+
+// Care Categories from the API
+export interface CareCategory {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+  platformFee: number;
+  icon: string | null;
+  color: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hourlyRate: number;
+  experienceLevel: number;
 }
 
 export interface ProviderProfileBase {
