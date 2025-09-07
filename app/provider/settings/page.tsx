@@ -395,7 +395,7 @@ function ProfileSettings({ profileData }: { profileData: ProviderProfileDetails 
   return (
     <div className="max-w-full mx-auto space-y-6 md:space-y-8 lg:space-y-10 px-2 sm:px-4">
       {/* Profile Header Section */}
-      <div className="bg-[#00C2CB] rounded-xl p-8 text-white">
+      <div className="bg-gradient-to-br from-[#00C2CB] to-blue-600 rounded-2xl p-7 text-white shadow-xl">
         <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
           <div className="relative">
             <div className="w-28 h-28 rounded-full bg-white/20 overflow-hidden ring-4 ring-white/30">
