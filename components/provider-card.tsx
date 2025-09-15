@@ -4,8 +4,11 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { MessageCircle, Star } from "lucide-react";
 import { ProviderListItem } from "@/types/api";
+import { useAuth } from "@/lib/auth-context";
+import { ChatUtils, useChatNavigation } from "@/lib/chat-utils";
+import { UserRole } from "@/lib/middleware-utils";
 
 interface ProviderCardProps {
     provider: ProviderListItem;
@@ -26,10 +29,30 @@ const ProviderCard: React.FC<ProviderCardProps> = ({
     onViewProfile,
     onBookNow,
 }) => {
+    const { user, userRole } = useAuth();
+    const { navigateToChatWithUser } = useChatNavigation();
+
     const maxRate = provider.categories.reduce(
         (max, cat) => (cat.hourlyRate > max ? cat.hourlyRate : max),
         0
     );
+
+    const handleStartChat = async () => {
+        if (!user || !userRole) return;
+
+        await navigateToChatWithUser(
+            provider.userId,
+            `${provider.firstName} ${provider.lastName}`,
+            {
+                userRole: userRole as UserRole,
+                userId: user.userId,
+                onError: (error) => console.error("Chat error:", error)
+            }
+        );
+    };
+
+    // Only show chat button for clients
+    const canStartChat = ChatUtils.canUserStartNewChats(userRole as UserRole);
 
     return (
         <Card className="w-full max-w-sm rounded-xl overflow-hidden shadow-md border border-border bg-background">
@@ -90,22 +113,37 @@ const ProviderCard: React.FC<ProviderCardProps> = ({
             </CardContent>
 
             {/* Footer actions */}
-            <CardFooter className="px-6 py-4 flex flex-col sm:flex-row gap-3">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 rounded-md"
-                    onClick={() => onViewProfile(provider.userId)}
-                >
-                    View Profile
-                </Button>
-                <Button
-                    size="sm"
-                    className="flex-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={() => onBookNow(provider.userId)}
-                >
-                    Book Now
-                </Button>
+            <CardFooter className="px-6 py-4 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 rounded-md"
+                        onClick={() => onViewProfile(provider.userId)}
+                    >
+                        View Profile
+                    </Button>
+                    <Button
+                        size="sm"
+                        className="flex-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                        onClick={() => onBookNow(provider.userId)}
+                    >
+                        Book Now
+                    </Button>
+                </div>
+
+                {/* Chat button - only for clients */}
+                {canStartChat && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full rounded-md"
+                        onClick={handleStartChat}
+                    >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Start Chat
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     );

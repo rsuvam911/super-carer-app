@@ -12,7 +12,6 @@ import { useState } from "react"
 
 // Environment variables
 const ENABLE_SOCIAL_LOGIN = process.env.NEXT_PUBLIC_ENABLE_SOCIAL_LOGIN === "true"
-const ENABLE_REGISTRATION = process.env.NEXT_PUBLIC_ENABLE_REGISTRATION === "true"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Super Carer App"
 
 export default function LoginPage() {
@@ -152,17 +151,15 @@ export default function LoginPage() {
           </div>
         </>
       )}
+      <div className="text-center">
+        <p className="text-sm text-gray-500">
+          Don't have an account?{" "}
+          <Link href="/register" className="text-[#00C2CB] hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </div>
 
-      {ENABLE_REGISTRATION && (
-        <div className="text-center">
-          <p className="text-sm text-gray-500">
-            Don't have an account?{" "}
-            <Link href="/register" className="text-[#00C2CB] hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </div>
-      )}
     </div>
   )
 }

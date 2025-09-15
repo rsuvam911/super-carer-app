@@ -18,6 +18,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow OTP verification even for authenticated users (they might be completing registration)
+  if (path === "/verify-otp") {
+    return NextResponse.next();
+  }
+
   // If user is authenticated and trying to access public auth pages, redirect to dashboard
   if (isPublicRoute(path) && authState.isAuthenticated && authState.userRole) {
     const dashboardPath = getDashboardPath(authState.userRole);

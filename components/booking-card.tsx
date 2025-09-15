@@ -1,21 +1,25 @@
 "use client";
 
-import { Booking } from "@/types/booking";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Booking } from "@/types/booking";
+import { format } from "date-fns";
 import {
   Calendar,
   Clock,
-  MapPin,
-  Phone,
-  Mail,
-  Star,
   DollarSign,
-  User,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Star,
+  User
 } from "lucide-react";
-import { format } from "date-fns";
+import { useAuth } from "@/lib/auth-context";
+import { ChatUtils, useChatNavigation } from "@/lib/chat-utils";
+import { UserRole } from "@/lib/middleware-utils";
 
 interface BookingCardProps {
   booking: Booking;
@@ -30,6 +34,10 @@ export function BookingCard({
   onReschedule,
   onCancel,
 }: BookingCardProps) {
+  const { user, userRole } = useAuth();
+  const { navigateToChatWithUser } = useChatNavigation();
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "completed":
@@ -63,6 +71,37 @@ export function BookingCard({
       return timeString;
     }
   };
+
+  const handleStartChat = async () => {
+    if (!user || !userRole || isStartingChat) return;
+
+    setIsStartingChat(true);
+    try {
+      // Determine who to chat with based on user role
+      const recipientUserId = userRole === "client"
+        ? booking.careProviders.Providerid
+        : booking.clients.name; // This should be userId but we don't have it in the type
+
+      const recipientName = userRole === "client"
+        ? booking.careProviders.name
+        : booking.clients.name;
+
+      await navigateToChatWithUser(
+        recipientUserId,
+        recipientName,
+        {
+          userRole: userRole as UserRole,
+          userId: user.userId,
+          onError: (error) => console.error("Chat error:", error)
+        }
+      );
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
+  // Check if user can start chat from booking context
+  const canChatFromBooking = ChatUtils.canChatFromBooking(userRole as UserRole, booking.status);
 
   const primarySlot = booking.bookingSlots[0];
 
@@ -150,11 +189,16 @@ export function BookingCard({
         <div className="flex items-start space-x-2 text-sm">
           <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
           <div>
-            <p>{booking.clients.location.streetAddress}</p>
-            <p className="text-gray-600">
-              {booking.clients.location.city}, {booking.clients.location.state}{" "}
-              {booking.clients.location.postalCode}
-            </p>
+            {booking.clients.location && booking.clients.location.streetAddress && (
+              <p>{booking.clients.location.streetAddress}</p>
+            )}
+            {booking.clients.location && (booking.clients.location.city || booking.clients.location.state || booking.clients.location.postalCode) && (
+              <p className="text-gray-600">
+                {booking.clients.location.city}{booking.clients.location.city && (booking.clients.location.state || booking.clients.location.postalCode) ? ', ' : ''}
+                {booking.clients.location.state}{booking.clients.location.state && booking.clients.location.postalCode ? ' ' : ''}
+                {booking.clients.location.postalCode}
+              </p>
+            )}
           </div>
         </div>
 
@@ -190,6 +234,25 @@ export function BookingCard({
                 Cancel
               </Button>
             )}
+
+          {/* Chat Button */}
+          {canChatFromBooking && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartChat}
+              disabled={isStartingChat}
+            >
+              <MessageCircle className="h-4 w-4 mr-1" />
+              {isStartingChat
+                ? "Starting..."
+                : ChatUtils.getChatButtonText(
+                  userRole as UserRole,
+                  "booking_detail"
+                )
+              }
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

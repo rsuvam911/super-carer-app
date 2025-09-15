@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/lib/auth-context";
+import { ChatUtils, useChatNavigation } from "@/lib/chat-utils";
+import { UserRole } from "@/lib/middleware-utils";
 import {
   ArrowLeft,
   Calendar,
@@ -22,6 +25,7 @@ import {
   FileText,
   Download,
   RefreshCw,
+  MessageCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -30,10 +34,13 @@ export default function BookingDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const bookingId = params.bookingId as string;
+  const { user, userRole } = useAuth();
+  const { navigateToChatWithUser } = useChatNavigation();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isStartingChat, setIsStartingChat] = useState(false);
 
   useEffect(() => {
     if (bookingId) {
@@ -85,6 +92,33 @@ export default function BookingDetailsPage() {
   const handleDownloadInvoice = (invoiceUrl: string) => {
     window.open(invoiceUrl, "_blank");
   };
+
+  const handleStartChat = async () => {
+    if (!user || !userRole || !booking || isStartingChat) return;
+
+    setIsStartingChat(true);
+    try {
+      // For clients, chat with the care provider
+      const recipientUserId = booking.careProviders.Providerid;
+      const recipientName = booking.careProviders.name;
+
+      await navigateToChatWithUser(
+        recipientUserId,
+        recipientName,
+        {
+          userRole: userRole as UserRole,
+          userId: user.userId,
+          onError: (error) => console.error("Chat error:", error)
+        }
+      );
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
+  // Check if user can start chat from booking context
+  const canChatFromBooking = booking ?
+    ChatUtils.canChatFromBooking(userRole as UserRole, booking.status) : false;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -227,6 +261,48 @@ export default function BookingDetailsPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Chat Button */}
+                  {canChatFromBooking && (
+                    <div className="mt-4 pt-4 border-t">
+                      <Button
+                        onClick={handleStartChat}
+                        disabled={isStartingChat}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        {isStartingChat
+                          ? "Starting Chat..."
+                          : ChatUtils.getChatButtonText(
+                            userRole as UserRole,
+                            "booking_detail"
+                          )
+                        }
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Chat Button */}
+                  {canChatFromBooking && (
+                    <div className="mt-4 pt-4 border-t">
+                      <Button
+                        onClick={handleStartChat}
+                        disabled={isStartingChat}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        {isStartingChat
+                          ? "Starting Chat..."
+                          : ChatUtils.getChatButtonText(
+                            userRole as UserRole,
+                            "booking_detail"
+                          )
+                        }
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -273,17 +349,23 @@ export default function BookingDetailsPage() {
               <div className="flex items-start space-x-2">
                 <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
                 <div>
-                  <p className="font-medium">
-                    {booking.clients.location.streetAddress}
-                  </p>
-                  <p className="text-gray-600">
-                    {booking.clients.location.city},{" "}
-                    {booking.clients.location.state}{" "}
-                    {booking.clients.location.postalCode}
-                  </p>
-                  <p className="text-gray-600">
-                    {booking.clients.location.country}
-                  </p>
+                  {booking.clients.location ? (
+                    <>
+                      <p className="font-medium">
+                        {booking.clients.location.streetAddress}
+                      </p>
+                      <p className="text-gray-600">
+                        {booking.clients.location.city},{" "}
+                        {booking.clients.location.state}{" "}
+                        {booking.clients.location.postalCode}
+                      </p>
+                      <p className="text-gray-600">
+                        {booking.clients.location.country}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">No location information available</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -368,14 +450,14 @@ export default function BookingDetailsPage() {
               {["pending", "confirmed"].includes(
                 booking.status.toLowerCase()
               ) && (
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={handleCancel}
-                >
-                  Cancel Booking
-                </Button>
-              )}
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleCancel}
+                  >
+                    Cancel Booking
+                  </Button>
+                )}
 
               <Button
                 variant="outline"

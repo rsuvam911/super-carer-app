@@ -17,8 +17,15 @@ export interface AddPaymentMethodRequest {
 }
 
 export interface PaymentMethodResult {
-  id: string;
-  type: string;
+  paymentMethodId: string;
+  cardBrand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+  isDefault: boolean;
+  // Keep legacy fields for backward compatibility
+  id?: string;
+  type?: string;
   card?: {
     brand: string;
     last4: string;
@@ -165,7 +172,8 @@ export class StripeService {
   async getPaymentMethods(): Promise<PaymentMethodResult[]> {
     try {
       const response = await apiclient.get("/payment/methods");
-      return response.data.paymentMethods || [];
+      // Updated to use the new API response structure
+      return response.data.payload || [];
     } catch (error) {
       console.error("Error fetching payment methods:", error);
       throw new Error("Failed to load payment methods. Please try again.");

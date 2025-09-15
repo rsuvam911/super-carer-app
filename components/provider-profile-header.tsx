@@ -1,9 +1,13 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star } from "lucide-react";
+import { MessageCircle, Star } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { ChatUtils, useChatNavigation } from "@/lib/chat-utils";
+import { UserRole } from "@/lib/middleware-utils";
 import {
     ProviderProfileDetails,
     Qualifications,
@@ -16,6 +20,10 @@ interface ProviderProfileHeaderProps {
 const ProviderProfileHeader: React.FC<ProviderProfileHeaderProps> = ({
     profile,
 }) => {
+    const { user, userRole } = useAuth();
+    const { navigateToChatWithUser } = useChatNavigation();
+    const [isStartingChat, setIsStartingChat] = useState(false);
+
     // Parse qualifications if it's a JSON string
     let qualifications: Qualifications = { education: "N/A", certifications: [] };
     try {
@@ -25,6 +33,29 @@ const ProviderProfileHeader: React.FC<ProviderProfileHeaderProps> = ({
     } catch (e) {
         console.warn("Failed to parse qualifications:", e);
     }
+
+    const handleStartChat = async () => {
+        if (!user || !userRole || isStartingChat) return;
+
+        setIsStartingChat(true);
+        try {
+            await navigateToChatWithUser(
+                profile.userId,
+                `${profile.firstName} ${profile.lastName}`,
+                {
+                    userRole: userRole as UserRole,
+                    userId: user.userId,
+                    onError: (error) => console.error("Chat error:", error)
+                }
+            );
+        } finally {
+            setIsStartingChat(false);
+        }
+    };
+
+    // Check if current user can start chat with this provider
+    const canStartChat = ChatUtils.canUserStartNewChats(userRole as UserRole) &&
+        profile.userId !== user?.userId; // Don't allow chatting with self
 
     return (
         <Card className="bg-background rounded-xl shadow-md p-6 mb-8 border">
@@ -57,6 +88,20 @@ const ProviderProfileHeader: React.FC<ProviderProfileHeaderProps> = ({
                         <span className="text-muted-foreground">
                             {profile.ratingCount || 0} reviews
                         </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                        {canStartChat && (
+                            <Button
+                                onClick={handleStartChat}
+                                disabled={isStartingChat}
+                                className="bg-primary hover:bg-primary/90"
+                            >
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                {isStartingChat ? "Starting Chat..." : "Start Chat"}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>

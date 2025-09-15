@@ -13,7 +13,7 @@ export interface BookingClient {
   phoneNumber: string;
   email: string;
   profilePictureUrl: string;
-  location: BookingLocation;
+  location: BookingLocation | null;
 }
 
 export interface BookingCareProvider {

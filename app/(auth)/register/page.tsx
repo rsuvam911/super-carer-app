@@ -1,58 +1,60 @@
-"use client"
+"use client";
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { useAuth } from "@/lib/auth-context"
-import { AlertCircle } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/lib/auth-context";
+import { AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Super Carer App"
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Super Carer App";
 
 export default function RegisterPage() {
-  const { register, isLoading, error: authError, clearError } = useAuth()
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [isCareProvider, setIsCareProvider] = useState(false)
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const { register, isLoading, error: authError, clearError } = useAuth();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isCareProvider, setIsCareProvider] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setValidationError(null)
-    clearError()
+    e.preventDefault();
+    setValidationError(null);
+    clearError();
 
     if (password !== confirmPassword) {
-      setValidationError("Passwords do not match")
-      return
+      setValidationError("Passwords do not match");
+      return;
     }
 
     try {
-      await register({ 
-        firstName, 
-        lastName, 
-        email, 
-        password, 
-        confirmPassword, 
-        phoneNumber, 
-        isCareProvider 
-      })
+      await register({
+        firstName,
+        lastName,
+        email,
+        password,
+        confirmPassword,
+        phoneNumber,
+        isCareProvider,
+      });
     } catch (err: any) {
       // Error is handled by the auth context and displayed via sonner
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold">Create an account</h1>
-        <p className="text-gray-500 mt-2">Enter your details to get started with {APP_NAME}</p>
+        <p className="text-gray-500 mt-2">
+          Enter your details to get started with {APP_NAME}
+        </p>
       </div>
 
       {(validationError || authError) && (
@@ -132,16 +134,25 @@ export default function RegisterPage() {
           />
         </div>
         <div className="flex items-center space-x-2">
-          <Switch 
+          <Switch
             id="isCareProvider"
             checked={isCareProvider}
             onCheckedChange={setIsCareProvider}
           />
           <Label htmlFor="isCareProvider">Are you a care provider?</Label>
         </div>
-        <Button type="submit" className="w-full bg-[#00C2CB] hover:bg-[#00a9b1]" disabled={isLoading}>
-          {isLoading ? "Creating account..." : "Create account"}
+        <Button
+          type="submit"
+          className="w-full bg-[#00C2CB] hover:bg-[#00a9b1]"
+          disabled={isLoading}
+        >
+          {isLoading ? "Creating account..." : "Create account & Send OTP"}
         </Button>
+
+        <div className="text-xs text-gray-500 text-center mt-2">
+          After registration, you'll receive an OTP via email to verify your
+          account.
+        </div>
       </form>
 
       <div className="text-center">
@@ -153,5 +164,5 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
-  )
+  );
 }

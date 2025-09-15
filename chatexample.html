@@ -1,0 +1,4114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SuperCare Real-Time Chat System</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 1rem;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 1rem 2rem;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 0.25rem;
+        font-weight: 300;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1rem;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        height: calc(100vh - 120px);
+        gap: 0;
+      }
+
+      .panel {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
+      }
+
+      .panel h3 {
+        color: #495057;
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #495057;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #4facfe;
+        box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+      }
+
+      textarea {
+        height: 120px;
+        font-family: "Courier New", monospace;
+        resize: vertical;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 0.5rem;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+      }
+
+      /* Make new chat panel visible after connection */
+      #newChatPanel.connected {
+        display: block !important;
+      }
+
+      .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+      }
+
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #6c757d;
+        animation: pulse 2s infinite;
+      }
+
+      .status-indicator.connected {
+        background: #28a745;
+      }
+
+      .status-indicator.connecting {
+        background: #ffc107;
+      }
+
+      .status-indicator.error {
+        background: #dc3545;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.5;
+        }
+
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+      }
+
+      .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #4facfe;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+      }
+
+      .log-container {
+        grid-column: 1 / -1;
+        margin-top: 1rem;
+      }
+
+      #log {
+        background: #1e1e1e;
+        color: #f8f8f2;
+        padding: 1rem;
+        height: 400px;
+        overflow-y: auto;
+        border-radius: 6px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
+      .log-entry {
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+      }
+
+      .log-timestamp {
+        color: #6272a4;
+        font-weight: bold;
+      }
+
+      .log-info {
+        color: #f8f8f2;
+      }
+
+      .log-success {
+        color: #50fa7b;
+      }
+
+      .log-warning {
+        color: #ffb86c;
+      }
+
+      .log-error {
+        color: #ff5555;
+      }
+
+      .log-received {
+        color: #8be9fd;
+      }
+
+      .log-sent {
+        color: #bd93f9;
+      }
+
+      .message-templates {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .template-btn {
+        padding: 0.5rem;
+        background: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+      }
+
+      .template-btn:hover {
+        background: #dee2e6;
+        border-color: #adb5bd;
+      }
+
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .controls button {
+        flex: 1;
+      }
+
+      /* Chat-specific styles */
+      .sidebar {
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .sidebar-header {
+        padding: 1rem;
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .chatrooms-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+      }
+
+      .chatroom-item {
+        padding: 1rem;
+        border-bottom: 1px solid #e9ecef;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .chatroom-item:hover {
+        background: #e9ecef;
+      }
+
+      .chatroom-item.active {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+      }
+
+      .profile-pic {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      .chatroom-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .chatroom-name {
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.25rem 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .last-message {
+        font-size: 0.85rem;
+        color: #666;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .message-time {
+        font-size: 0.75rem;
+        color: #999;
+        white-space: nowrap;
+      }
+
+      .chat-window {
+        display: flex;
+        flex-direction: column;
+        background: white;
+        height: 100%;
+      }
+
+      .chat-header {
+        padding: 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .chat-header .profile-pic {
+        width: 36px;
+        height: 36px;
+      }
+
+      .chat-info h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #333;
+      }
+
+      .chat-info p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #666;
+      }
+
+      .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background: #f5f5f5;
+      }
+
+      .message {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .message.own {
+        flex-direction: row-reverse;
+      }
+
+      .message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+      }
+
+      .message.own .message-avatar {
+        background: #2196f3;
+        color: white;
+      }
+
+      .message-content {
+        max-width: 70%;
+      }
+
+      .message-bubble {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-radius: 18px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        word-wrap: break-word;
+      }
+
+      .message.own .message-bubble {
+        background: #2196f3;
+        color: white;
+      }
+
+      .message-text {
+        margin: 0;
+        line-height: 1.4;
+      }
+
+      .message-file {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        margin-top: 0.5rem;
+      }
+
+      .message.own .message-file {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .message-meta {
+        font-size: 0.75rem;
+        color: #666;
+        margin-top: 0.25rem;
+      }
+
+      .message.own .message-meta {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .chat-input {
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .input-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-end;
+      }
+
+      .message-input {
+        flex: 1;
+        border: 2px solid #e9ecef;
+        border-radius: 20px;
+        padding: 0.75rem 1rem;
+        resize: none;
+        min-height: 40px;
+        max-height: 120px;
+        font-family: inherit;
+      }
+
+      .message-input:focus {
+        outline: none;
+        border-color: #2196f3;
+      }
+
+      .file-input-container {
+        position: relative;
+      }
+
+      .file-input {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+
+      .file-btn {
+        background: #f5f5f5;
+        border: 2px solid #e9ecef;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .file-btn:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+      }
+
+      .send-btn {
+        background: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .send-btn:hover {
+        background: #1976d2;
+      }
+
+      .send-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #666;
+        text-align: center;
+      }
+
+      .empty-state h3 {
+        margin: 0 0 0.5rem 0;
+        color: #999;
+      }
+
+      .empty-state p {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        color: #666;
+      }
+
+      .typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-style: italic;
+        color: #666;
+        font-size: 0.85rem;
+      }
+
+      .typing-dots {
+        display: flex;
+        gap: 2px;
+      }
+
+      .typing-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #666;
+        animation: typing 1.4s infinite;
+      }
+
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes typing {
+        0%,
+        60%,
+        100% {
+          opacity: 0.3;
+        }
+        30% {
+          opacity: 1;
+        }
+      }
+
+      .file-preview {
+        background: #e3f2fd;
+        padding: 0.5rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+      }
+
+      .file-preview .remove-file {
+        background: none;
+        border: none;
+        color: #f44336;
+        cursor: pointer;
+        padding: 0;
+        margin-left: auto;
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+          height: calc(100vh - 100px);
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .sidebar.mobile-show {
+          display: flex;
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 1000;
+        }
+
+        .header h1 {
+          font-size: 1.5rem;
+        }
+
+        .message-content {
+          max-width: 85%;
+        }
+      }
+
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 6px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+      }
+
+      .notification.show {
+        transform: translateX(0);
+      }
+
+      .notification.success {
+        background: #28a745;
+      }
+
+      .notification.error {
+        background: #dc3545;
+      }
+
+      .notification.warning {
+        background: #ffc107;
+        color: #212529;
+      }
+
+      .notification.info {
+        background: #17a2b8;
+      }
+
+      /* Notification Panel Styles */
+      .notification-panel {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 350px;
+        max-height: 80vh;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        z-index: 1001;
+        overflow: hidden;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+      }
+
+      .notification-panel.show {
+        transform: translateX(0);
+      }
+
+      .notification-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .notification-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      .notification-close {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 1.5rem;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .notification-list {
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 0;
+      }
+
+      .notification-item {
+        padding: 1rem;
+        border-bottom: 1px solid #e9ecef;
+        background: white;
+        transition: background-color 0.2s ease;
+      }
+
+      .notification-item:hover {
+        background: #f8f9fa;
+      }
+
+      .notification-item.unread {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+      }
+
+      .notification-item.booking-request {
+        border-left-color: #ff9800;
+      }
+
+      .notification-item.high-priority {
+        border-left-color: #f44336;
+      }
+
+      .notification-item.urgent-priority {
+        border-left-color: #e91e63;
+        animation: pulse-urgent 2s infinite;
+      }
+
+      @keyframes pulse-urgent {
+        0%,
+        100% {
+          border-left-width: 4px;
+        }
+        50% {
+          border-left-width: 6px;
+        }
+      }
+
+      .notification-title {
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.5rem 0;
+        font-size: 0.95rem;
+      }
+
+      .notification-content {
+        color: #666;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        margin: 0 0 0.5rem 0;
+      }
+
+      .notification-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        color: #999;
+      }
+
+      .notification-time {
+        font-style: italic;
+      }
+
+      .notification-priority {
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.65rem;
+      }
+
+      .priority-low {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      .priority-normal {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+
+      .priority-high {
+        background: #fff3e0;
+        color: #ef6c00;
+      }
+
+      .priority-urgent {
+        background: #ffebee;
+        color: #c62828;
+      }
+
+      .notification-actions {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .notification-btn {
+        padding: 0.4rem 0.8rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .notification-btn.primary {
+        background: #2196f3;
+        color: white;
+      }
+
+      .notification-btn.primary:hover {
+        background: #1976d2;
+      }
+
+      .notification-btn.secondary {
+        background: #f5f5f5;
+        color: #666;
+      }
+
+      .notification-btn.secondary:hover {
+        background: #e0e0e0;
+      }
+
+      .notification-counter {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #f44336;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+      }
+
+      .notification-toggle {
+        position: relative;
+        background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .notification-toggle:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+      }
+
+      .empty-notifications {
+        padding: 2rem;
+        text-align: center;
+        color: #999;
+        font-style: italic;
+      }
+
+      .toast-notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        max-width: 300px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        border-left: 4px solid #2196f3;
+        z-index: 1002;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+      }
+
+      .toast-notification.show {
+        transform: translateX(0);
+      }
+
+      .toast-notification.booking-request {
+        border-left-color: #ff9800;
+      }
+
+      .toast-notification.high-priority {
+        border-left-color: #f44336;
+      }
+
+      .toast-notification.urgent-priority {
+        border-left-color: #e91e63;
+      }
+
+      @media (max-width: 768px) {
+        .notification-panel {
+          width: 90vw;
+          right: 5vw;
+          top: 10px;
+        }
+
+        .toast-notification {
+          right: 10px;
+          bottom: 10px;
+          max-width: calc(100vw - 40px);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>💬 SuperCare Real-Time Chat System</h1>
+        <p>WebSocket-powered healthcare communication platform</p>
+      </div>
+
+      <div class="main-content">
+        <!-- Sidebar: Chatrooms List -->
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <h3 style="margin: 0; font-size: 1.1rem">💬 Conversations</h3>
+            <div class="connection-status">
+              <div class="status-indicator" id="statusIndicator"></div>
+              <span id="statusText">Disconnected</span>
+            </div>
+          </div>
+
+          <!-- Login Form -->
+          <div
+            class="panel"
+            id="loginPanel"
+            style="
+              padding: 1rem;
+              background: white;
+              border-bottom: 1px solid #e9ecef;
+            "
+          >
+            <div class="form-group" style="margin-bottom: 0.75rem">
+              <label for="url" style="font-size: 0.9rem; margin-bottom: 0.25rem"
+                >WebSocket URL</label
+              >
+              <input
+                type="text"
+                id="url"
+                value="ws://localhost:5221/ws"
+                style="font-size: 0.8rem"
+              />
+            </div>
+            <div class="form-group" style="margin-bottom: 0.75rem">
+              <label
+                for="token"
+                style="font-size: 0.9rem; margin-bottom: 0.25rem"
+                >JWT Token</label
+              >
+              <textarea
+                id="token"
+                placeholder="Paste your JWT token here..."
+                style="height: 60px; font-size: 0.8rem"
+              ></textarea>
+            </div>
+            <button
+              class="btn"
+              id="connectBtn"
+              onclick="connect()"
+              style="width: 100%; padding: 0.5rem; font-size: 0.9rem"
+            >
+              🔌 Connect & Load Chats
+            </button>
+          </div>
+
+          <!-- New Chat Form -->
+          <div
+            class="panel"
+            id="newChatPanel"
+            style="
+              padding: 1rem;
+              background: white;
+              border-bottom: 1px solid #e9ecef;
+              display: none;
+            "
+          >
+            <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #495057">
+              💬 Start New Chat
+            </h4>
+            <div class="form-group" style="margin-bottom: 0.75rem">
+              <label
+                for="recipientUserId"
+                style="font-size: 0.9rem; margin-bottom: 0.25rem"
+                >Recipient User ID</label
+              >
+              <input
+                type="text"
+                id="recipientUserId"
+                placeholder="Enter user ID (GUID format)"
+                style="font-size: 0.8rem"
+              />
+            </div>
+            <div class="form-group" style="margin-bottom: 0.75rem">
+              <label
+                for="recipientName"
+                style="font-size: 0.9rem; margin-bottom: 0.25rem"
+                >Recipient Name (Optional)</label
+              >
+              <input
+                type="text"
+                id="recipientName"
+                placeholder="Enter recipient's name"
+                style="font-size: 0.8rem"
+              />
+            </div>
+            <button
+              class="btn btn-success"
+              onclick="startNewChat()"
+              style="
+                width: 100%;
+                padding: 0.5rem;
+                font-size: 0.9rem;
+                font-weight: bold;
+              "
+            >
+              💬 Start Chat
+            </button>
+          </div>
+
+          <div class="chatrooms-list" id="chatroomsList">
+            <div class="empty-state">
+              <h3>🔌 Connect to View Chats</h3>
+              <p>
+                Enter your JWT token above and connect to see your conversations
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Chat Window -->
+        <div class="chat-window">
+          <div class="chat-header" id="chatHeader" style="display: none">
+            <div class="profile-pic" id="chatProfilePic">👤</div>
+            <div class="chat-info">
+              <h3 id="chatName">Select a conversation</h3>
+              <p id="chatStatus">Choose a chatroom from the sidebar</p>
+            </div>
+          </div>
+
+          <div class="messages-container" id="messagesContainer">
+            <div class="empty-state">
+              <h3>💬 Welcome to SuperCare Chat</h3>
+              <p>Select a conversation from the sidebar to start chatting</p>
+              <p style="font-size: 0.8rem; margin-top: 1rem; color: #999">
+                Features: Real-time messaging • File sharing • Read receipts •
+                Typing indicators
+              </p>
+            </div>
+          </div>
+
+          <div class="chat-input" id="chatInput" style="display: none">
+            <div id="filePreview"></div>
+            <div class="input-row">
+              <div class="file-input-container">
+                <input
+                  type="file"
+                  class="file-input"
+                  id="fileInput"
+                  accept="*/*"
+                  onchange="handleFileSelect(event)"
+                />
+                <div class="file-btn">📎</div>
+              </div>
+              <textarea
+                class="message-input"
+                id="messageInput"
+                placeholder="Type a message..."
+                onkeydown="handleMessageKeydown(event)"
+                oninput="handleTyping()"
+                onblur="stopTyping()"
+              ></textarea>
+              <button
+                class="send-btn"
+                id="sendBtn"
+                onclick="sendChatMessage()"
+                disabled
+              >
+                ➤
+              </button>
+            </div>
+            <div id="typingIndicators"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      class ChatWebSocketClient {
+        constructor() {
+          this.ws = null;
+          this.heartbeatInterval = null;
+          this.uptimeInterval = null;
+          this.connectTime = null;
+          this.autoScroll = true;
+          this.autoHeartbeat = true;
+          this.notificationPanelVisible = false;
+          this.notifications = [];
+          this.unreadCount = 0;
+
+          // Chat-specific properties
+          this.currentChatroom = null;
+          this.currentRecipient = null;
+          this.chatrooms = [];
+          this.messages = {};
+          this.typingUsers = new Set();
+          this.typingTimeout = null;
+          this.selectedFile = null;
+          this.currentUserId = null;
+          this.senderInfo = {}; // Store sender information
+
+          this.stats = {
+            messagesSent: 0,
+            messagesReceived: 0,
+            heartbeats: 0,
+          };
+
+          this.messageTemplates = {
+            pong: {
+              type: "pong",
+              payload: { timestamp: new Date().toISOString() },
+            },
+            notification: {
+              type: "notification.mark_read",
+              payload: {
+                notificationId: "12345678-1234-1234-1234-123456789012",
+              },
+            },
+            chat: {
+              type: "chat.send",
+              payload: {
+                message: "Hello from SuperCare Chat!",
+                chatroomId: "",
+                fileUrl: "",
+              },
+            },
+            chatTyping: {
+              type: "chat.typing",
+              payload: { chatroomId: "", isTyping: true },
+            },
+            subscribe: {
+              type: "notification.subscribe",
+              payload: { topic: "user.notifications" },
+            },
+            unsubscribe: {
+              type: "notification.unsubscribe",
+              payload: { topic: "user.notifications" },
+            },
+            custom: {
+              type: "custom",
+              payload: { message: "Your custom message here" },
+            },
+          };
+
+          this.initializeEventListeners();
+        }
+
+        initializeEventListeners() {
+          // Only add event listeners if elements exist (for chat interface)
+          const tokenInput = document.getElementById("token");
+          if (tokenInput) {
+            tokenInput.addEventListener("input", () => {
+              this.validateToken();
+            });
+          }
+
+          const chatInput = document.getElementById("chatInput");
+          if (chatInput) {
+            // Enter key to send chat message
+            chatInput.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                this.sendChatMessage();
+              }
+            });
+          }
+
+          // Note: Other event listeners are handled via HTML onclick attributes
+        }
+
+        debounce(func, wait) {
+          let timeout;
+          return function executedFunction(...args) {
+            const later = () => {
+              clearTimeout(timeout);
+              func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+          };
+        }
+
+        validateJson() {
+          const messageInput = document.getElementById("message");
+          try {
+            JSON.parse(messageInput.value);
+            messageInput.style.borderColor = "#28a745";
+          } catch (e) {
+            messageInput.style.borderColor = "#dc3545";
+          }
+        }
+
+        validateToken() {
+          const tokenInput = document.getElementById("token");
+          const token = tokenInput.value.trim();
+
+          if (!token) {
+            tokenInput.style.borderColor = "#e9ecef";
+            return;
+          }
+
+          try {
+            // Basic JWT validation (check if it has 3 parts)
+            const parts = token.split(".");
+            if (parts.length === 3) {
+              tokenInput.style.borderColor = "#28a745";
+            } else {
+              tokenInput.style.borderColor = "#ffc107";
+            }
+          } catch (e) {
+            tokenInput.style.borderColor = "#dc3545";
+          }
+        }
+
+        async connect() {
+          // Get URL and token values with fallbacks
+          let url = "ws://localhost:5221/ws"; // Default URL
+          let token = "";
+
+          const urlElement = document.getElementById("url");
+          const tokenElement = document.getElementById("token");
+
+          if (urlElement) {
+            url = urlElement.value.trim();
+          }
+          if (tokenElement) {
+            token = tokenElement.value.trim();
+          }
+
+          if (!url || !token) {
+            this.showNotification(
+              "Please enter both URL and JWT token",
+              "error"
+            );
+            return;
+          }
+
+          this.setStatus("connecting", "Connecting...");
+          this.log("🔄 Attempting to connect...", "info");
+          this.log(`🔗 WebSocket URL: ${url}`, "info");
+          this.log(`🔐 Token length: ${token.length} characters`, "info");
+
+          // Debug: Log token structure (without sensitive data)
+          try {
+            const tokenParts = token.split(".");
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]));
+              this.log(
+                `📋 Token payload keys: ${Object.keys(payload).join(", ")}`,
+                "info"
+              );
+
+              // Log user-related claims
+              const userClaims = ["sub", "user_id", "userId", "nameid", "id"];
+              userClaims.forEach((claim) => {
+                if (payload[claim]) {
+                  this.log(`👤 Token ${claim}: ${payload[claim]}`, "info");
+                }
+              });
+            } else {
+              this.log("⚠️ Invalid token format", "warning");
+            }
+          } catch (e) {
+            this.log(
+              `⚠️ Could not parse token for debugging: ${e.message}`,
+              "warning"
+            );
+          }
+
+          // Extract user ID from token (works for both Clients and CareProviders)
+          this.currentUserId = this.extractUserIdFromToken(token);
+          if (!this.currentUserId) {
+            this.log(
+              "⚠️ Could not extract user ID from token, using fallback",
+              "warning"
+            );
+            // Don't block connection - let the server validate the token
+          } else {
+            this.log(`👤 Extracted user ID: ${this.currentUserId}`, "info");
+          }
+
+          try {
+            this.log(`🔌 Creating WebSocket connection...`, "info");
+            this.ws = new WebSocket(
+              `${url}?token=${encodeURIComponent(token)}`
+            );
+            this.log(`🔌 WebSocket created, setting up handlers...`, "info");
+            this.setupWebSocketHandlers();
+          } catch (error) {
+            let errorMessage = "Connection failed";
+            if (error && error.message) {
+              errorMessage = error.message;
+            }
+            this.log(`❌ Connection failed: ${errorMessage}`, "error");
+            this.setStatus("error", "Connection Failed");
+            this.showNotification(
+              `Connection failed: ${errorMessage}. Please check if the server is running.`,
+              "error"
+            );
+          }
+        }
+
+        setupWebSocketHandlers() {
+          this.ws.onopen = async () => {
+            this.connectTime = new Date();
+            this.setStatus("connected", "Connected");
+            this.log("✅ Connected successfully", "success");
+            this.showNotification(
+              "WebSocket connected successfully!",
+              "success"
+            );
+
+            // Disable connect button if it exists
+            const connectBtn = document.getElementById("connectBtn");
+            if (connectBtn) {
+              connectBtn.disabled = true;
+              this.log("🔧 Connect button disabled", "info");
+            }
+
+            this.startUptimeCounter();
+            if (this.autoHeartbeat) {
+              this.startHeartbeat();
+            }
+
+            // Load chatrooms after connection
+            try {
+              await this.loadChatrooms();
+              this.log("📱 Chatrooms loaded successfully", "success");
+            } catch (error) {
+              this.log(
+                `❌ Failed to load chatrooms: ${error.message}`,
+                "error"
+              );
+            } finally {
+              // Always show new chat panel after connection attempt
+              const newChatPanel = document.getElementById("newChatPanel");
+              if (newChatPanel) {
+                newChatPanel.classList.add("connected");
+                this.log('🔍 New chat panel class "connected" added', "info");
+              } else {
+                this.log("❌ New chat panel element not found", "error");
+              }
+            }
+          };
+
+          this.ws.onmessage = (event) => {
+            this.stats.messagesReceived++;
+            this.updateStats();
+
+            try {
+              const data = JSON.parse(event.data);
+              this.log(
+                `📨 RAW MESSAGE: ${JSON.stringify(data, null, 2)}`,
+                "received"
+              );
+
+              // Handle different message types
+              if (data.type === "notification.new") {
+                this.log(
+                  `🔍 DEBUG: Processing notification.new message`,
+                  "info"
+                );
+                this.log(
+                  `🔍 DEBUG: Payload = ${JSON.stringify(
+                    data.payload,
+                    null,
+                    2
+                  )}`,
+                  "info"
+                );
+                this.log(
+                  `🔍 DEBUG: Current notifications count before: ${this.notifications.length}`,
+                  "info"
+                );
+                this.handleNotificationReceived(data.payload);
+                this.log(
+                  `🔍 DEBUG: Current notifications count after: ${this.notifications.length}`,
+                  "info"
+                );
+                this.log(
+                  `🔍 DEBUG: Notification panel visible: ${this.notificationPanelVisible}`,
+                  "info"
+                );
+              } else if (data.type === "chat.message") {
+                this.log(
+                  `💬 Processing chat.message from ${data.payload.from_user_id}`,
+                  "info"
+                );
+                this.handleIncomingMessage(data.payload);
+              } else if (data.type === "chat.typing") {
+                this.log(
+                  `✍️ Processing typing indicator from ${data.payload.from_user_id}`,
+                  "info"
+                );
+                this.handleTypingIndicator(data.payload);
+              } else if (data.type === "ping") {
+                this.log(`🏓 Ping received, sending pong...`, "info");
+                const pongMessage = {
+                  type: "pong",
+                  payload: { timestamp: new Date().toISOString() },
+                };
+                this.ws.send(JSON.stringify(pongMessage));
+                this.stats.heartbeats++;
+                this.log(`🏓 Auto-pong sent`, "sent");
+                this.updateStats();
+              } else {
+                this.log(
+                  `🔍 DEBUG: Received message type: ${data.type}`,
+                  "info"
+                );
+              }
+            } catch (error) {
+              this.log(
+                `❌ Failed to parse JSON message: ${error.message}`,
+                "error"
+              );
+              this.log(`📨 RAW DATA: ${event.data}`, "received");
+            }
+          };
+
+          this.ws.onerror = (error) => {
+            // Log detailed error information
+            let errorMessage = "Unknown error";
+            if (error && error.message) {
+              errorMessage = error.message;
+            } else if (error && typeof error === "string") {
+              errorMessage = error;
+            }
+
+            this.log(`❌ WebSocket error: ${errorMessage}`, "error");
+            this.setStatus("error", "Error");
+            this.showNotification(
+              `WebSocket error occurred: ${errorMessage}`,
+              "error"
+            );
+          };
+
+          this.ws.onclose = (event) => {
+            const reason = event.reason || "No reason provided";
+            const code = event.code || "Unknown";
+
+            // Log detailed close information
+            this.log(
+              `🔌 Connection closed: Code=${code}, Reason=${reason}`,
+              "warning"
+            );
+            this.setStatus("disconnected", "Disconnected");
+
+            // Re-enable connect button if it exists
+            const connectBtn = document.getElementById("connectBtn");
+            if (connectBtn) {
+              connectBtn.disabled = false;
+            }
+
+            this.stopHeartbeat();
+            this.stopUptimeCounter();
+
+            // Reset chat UI
+            this.resetChatUI();
+
+            // Show appropriate notification based on close code
+            if (event.code !== 1000) {
+              // Not a normal closure
+              let closeMessage = `Connection lost: ${reason}`;
+              if (event.code === 1006) {
+                closeMessage =
+                  "Connection failed. Please check if the server is running and accessible.";
+              }
+              this.showNotification(closeMessage, "warning");
+            }
+          };
+        }
+
+        disconnect() {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.close(1000, "User initiated disconnect");
+            this.log("🔌 Disconnecting...", "info");
+            // Reset UI immediately for user-initiated disconnect
+            setTimeout(() => {
+              this.resetChatUI();
+            }, 50);
+          }
+        }
+
+        sendMessage() {
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            this.showNotification("WebSocket is not connected", "error");
+            return;
+          }
+
+          const messageText = document.getElementById("message").value.trim();
+          if (!messageText) {
+            this.showNotification("Please enter a message", "warning");
+            return;
+          }
+
+          try {
+            // Validate JSON
+            const messageObj = JSON.parse(messageText);
+
+            this.ws.send(messageText);
+            this.stats.messagesSent++;
+            this.updateStats();
+
+            this.log(`📤 ${JSON.stringify(messageObj, null, 2)}`, "sent");
+            this.showNotification("Message sent successfully", "success");
+          } catch (error) {
+            this.log(`❌ Send failed: ${error.message}`, "error");
+            this.showNotification(`Invalid JSON: ${error.message}`, "error");
+          }
+        }
+
+        loadTemplate(templateName) {
+          const template = this.messageTemplates[templateName];
+          if (template) {
+            document.getElementById("message").value = JSON.stringify(
+              template,
+              null,
+              2
+            );
+            this.validateJson();
+          }
+        }
+
+        formatJson() {
+          const messageInput = document.getElementById("message");
+          try {
+            const parsed = JSON.parse(messageInput.value);
+            messageInput.value = JSON.stringify(parsed, null, 2);
+            this.validateJson();
+            this.showNotification("JSON formatted successfully", "success");
+          } catch (error) {
+            this.showNotification(`Invalid JSON: ${error.message}`, "error");
+          }
+        }
+
+        startHeartbeat() {
+          this.heartbeatInterval = setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+              // Heartbeat is handled automatically by responding to pings
+              // This interval is just for tracking
+            }
+          }, 30000);
+        }
+
+        stopHeartbeat() {
+          if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+          }
+        }
+
+        startUptimeCounter() {
+          this.uptimeInterval = setInterval(() => {
+            if (this.connectTime) {
+              const uptime = new Date() - this.connectTime;
+              const minutes = Math.floor(uptime / 60000);
+              const seconds = Math.floor((uptime % 60000) / 1000);
+              const uptimeText = `${minutes
+                .toString()
+                .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+              const uptimeElement = document.getElementById("uptime");
+              if (uptimeElement) {
+                uptimeElement.textContent = uptimeText;
+              }
+            }
+          }, 1000);
+        }
+
+        stopUptimeCounter() {
+          if (this.uptimeInterval) {
+            clearInterval(this.uptimeInterval);
+            this.uptimeInterval = null;
+          }
+          const uptimeElement = document.getElementById("uptime");
+          if (uptimeElement) {
+            uptimeElement.textContent = "00:00";
+          }
+        }
+
+        setStatus(status, text) {
+          // Update status indicator if it exists
+          const indicator = document.getElementById("statusIndicator");
+          const statusText = document.getElementById("statusText");
+
+          if (indicator) {
+            indicator.className = `status-indicator ${status}`;
+          }
+
+          if (statusText) {
+            statusText.textContent = text;
+          }
+
+          // Update connection time if element exists
+          const connectionTime = document.getElementById("connectionTime");
+          if (connectionTime) {
+            if (status === "connected" && this.connectTime) {
+              connectionTime.textContent = `Connected at ${this.connectTime.toLocaleTimeString()}`;
+            } else {
+              connectionTime.textContent = "";
+            }
+          }
+
+          // Log status change for chat interface
+          this.log(`Status: ${text}`, status === "error" ? "error" : "info");
+        }
+
+        updateStats() {
+          // Only update stats elements if they exist (for notification tester compatibility)
+          const messagesSent = document.getElementById("messagesSent");
+          const messagesReceived = document.getElementById("messagesReceived");
+          const heartbeats = document.getElementById("heartbeats");
+
+          if (messagesSent) {
+            messagesSent.textContent = this.stats.messagesSent;
+          }
+          if (messagesReceived) {
+            messagesReceived.textContent = this.stats.messagesReceived;
+          }
+          if (heartbeats) {
+            heartbeats.textContent = this.stats.heartbeats;
+          }
+
+          // For chat interface, log stats periodically
+          if (
+            this.stats.messagesReceived % 10 === 0 &&
+            this.stats.messagesReceived > 0
+          ) {
+            this.log(
+              `Stats: Sent=${this.stats.messagesSent}, Received=${this.stats.messagesReceived}, Heartbeats=${this.stats.heartbeats}`,
+              "info"
+            );
+          }
+        }
+
+        log(message, type = "info") {
+          // For chat interface, we'll log to console instead of a log div
+          const timestamp = new Date().toLocaleTimeString();
+          const logMessage = `[${timestamp}] ${message}`;
+
+          switch (type) {
+            case "error":
+              console.error(logMessage);
+              break;
+            case "warning":
+              console.warn(logMessage);
+              break;
+            case "success":
+              console.log(`✅ ${logMessage}`);
+              break;
+            case "info":
+            default:
+              console.log(logMessage);
+              break;
+          }
+        }
+
+        clearLog() {
+          console.clear();
+          this.log("📝 Console cleared", "info");
+        }
+
+        exportLog() {
+          this.showNotification("Export not available in chat mode", "info");
+        }
+
+        toggleAutoScroll() {
+          this.autoScroll = !this.autoScroll;
+          this.log(`Auto-scroll: ${this.autoScroll ? "ON" : "OFF"}`, "info");
+        }
+
+        toggleAutoHeartbeat() {
+          const autoHeartbeatElement = document.getElementById("autoHeartbeat");
+          if (autoHeartbeatElement) {
+            this.autoHeartbeat = autoHeartbeatElement.checked;
+          } else {
+            // Default to true for chat interface
+            this.autoHeartbeat = true;
+          }
+
+          if (
+            this.autoHeartbeat &&
+            this.ws &&
+            this.ws.readyState === WebSocket.OPEN
+          ) {
+            this.startHeartbeat();
+          } else {
+            this.stopHeartbeat();
+          }
+
+          this.log(
+            `Auto-heartbeat: ${this.autoHeartbeat ? "ON" : "OFF"}`,
+            "info"
+          );
+        }
+
+        showNotification(message, type = "info") {
+          const notification = document.createElement("div");
+          notification.className = `notification ${type}`;
+          notification.textContent = message;
+
+          document.body.appendChild(notification);
+
+          // Trigger animation
+          setTimeout(() => notification.classList.add("show"), 100);
+
+          // Remove after 3 seconds
+          setTimeout(() => {
+            notification.classList.remove("show");
+            setTimeout(() => document.body.removeChild(notification), 300);
+          }, 3000);
+        }
+
+        // REST API Integration for Database Notifications
+        async makeApiRequest(endpoint, options = {}) {
+          const token = document.getElementById("token").value.trim();
+          if (!token) {
+            throw new Error("JWT token is required for API requests");
+          }
+
+          const defaultOptions = {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          };
+
+          const finalOptions = { ...defaultOptions, ...options };
+          if (options.headers) {
+            finalOptions.headers = {
+              ...defaultOptions.headers,
+              ...options.headers,
+            };
+          }
+
+          const response = await fetch(endpoint, finalOptions);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `API request failed: ${response.status} ${response.statusText}`
+            );
+          }
+
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            return await response.json();
+          }
+          return null;
+        }
+
+        debugNotifications() {
+          this.log(`🔍 DEBUG: Notifications array contents:`, "info");
+          this.log(
+            `🔍 DEBUG: Array length: ${this.notifications.length}`,
+            "info"
+          );
+          this.log(`🔍 DEBUG: Unread count: ${this.unreadCount}`, "info");
+          this.log(
+            `🔍 DEBUG: Panel visible: ${this.notificationPanelVisible}`,
+            "info"
+          );
+
+          this.notifications.forEach((notification, index) => {
+            this.log(
+              `🔍 DEBUG: [${index}] ${notification.title} (${notification.source}) - Read: ${notification.isRead}`,
+              "info"
+            );
+          });
+
+          // Force update panel
+          this.updateNotificationPanel();
+          this.log(`🔍 DEBUG: Forced panel update completed`, "info");
+        }
+
+        // Notification handling methods
+        async loadNotificationsFromDatabase() {
+          try {
+            this.log(
+              "📡 Loading stored notifications from database...",
+              "info"
+            );
+
+            const userId = this.extractUserIdFromToken();
+            if (!userId) {
+              this.log(
+                "❌ Cannot load notifications: No user ID found in token",
+                "error"
+              );
+              return;
+            }
+
+            const endpoint = `http://localhost:5221/api/v1/account/users/${userId}/notifications?limit=50`;
+            const response = await this.makeApiRequest(endpoint);
+
+            if (response && response.data && Array.isArray(response.data)) {
+              // Clear existing database notifications
+              this.notifications = this.notifications.filter(
+                (n) => n.source === "websocket"
+              );
+
+              // Add database notifications
+              const dbNotifications = response.data.map((notification) => ({
+                id: notification.id,
+                title: notification.title,
+                content: notification.content,
+                type: notification.notificationType,
+                priority: notification.priority,
+                actionUrl: notification.actionUrl,
+                userId: notification.userId,
+                expiresAt: notification.expiresAt,
+                isRead: notification.isRead,
+                relatedEntityType: notification.relatedEntityType,
+                receivedAt: notification.createdAt,
+                source: "database",
+              }));
+
+              this.notifications = [...dbNotifications, ...this.notifications];
+              this.unreadCount = this.notifications.filter(
+                (n) => !n.isRead
+              ).length;
+              this.updateNotificationCounter();
+
+              this.log(
+                `✅ Loaded ${dbNotifications.length} notifications from database`,
+                "success"
+              );
+
+              if (this.notificationPanelVisible) {
+                this.updateNotificationPanel();
+              }
+
+              await this.loadNotificationCount();
+            } else {
+              this.log("📭 No notifications found in database", "info");
+            }
+          } catch (error) {
+            this.log(
+              `❌ Failed to load notifications from database: ${error.message}`,
+              "error"
+            );
+          }
+        }
+
+        // Enum mapping functions
+        getNotificationTypeString(notificationType) {
+          const types = {
+            0: "SystemNotification",
+            1: "BookingRequest",
+            2: "BookingConfirmation",
+            3: "BookingCancellation",
+            4: "MessageReceived",
+            5: "DocumentApproved",
+            6: "DocumentRejected",
+            7: "PaymentReceived",
+            8: "ReviewRequest",
+          };
+          return types[notificationType] || "Unknown";
+        }
+
+        getPriorityString(priority) {
+          const priorities = {
+            0: "Low",
+            1: "Normal",
+            2: "High",
+            3: "Urgent",
+          };
+          return priorities[priority] || "Normal";
+        }
+
+        handleNotificationReceived(notificationPayload) {
+          this.log(
+            `🎆 New notification received via WebSocket: ${notificationPayload.Title}`,
+            "success"
+          );
+
+          // Convert numeric enums to strings
+          const notificationTypeString = this.getNotificationTypeString(
+            notificationPayload.NotificationType
+          );
+          const priorityString = this.getPriorityString(
+            notificationPayload.Priority
+          );
+
+          this.log(
+            `🔍 DEBUG: Converted NotificationType ${notificationPayload.NotificationType} to '${notificationTypeString}'`,
+            "info"
+          );
+          this.log(
+            `🔍 DEBUG: Converted Priority ${notificationPayload.Priority} to '${priorityString}'`,
+            "info"
+          );
+
+          const notification = {
+            id: notificationPayload.Id,
+            title: notificationPayload.Title,
+            content: notificationPayload.Content,
+            type: notificationTypeString,
+            priority: priorityString,
+            actionUrl: notificationPayload.ActionUrl,
+            userId: notificationPayload.UserId,
+            expiresAt: notificationPayload.ExpiresAt,
+            isRead: notificationPayload.IsRead || false,
+            relatedEntityType: notificationPayload.RelatedEntityType,
+            receivedAt: new Date().toISOString(),
+            source: "websocket",
+          };
+
+          this.notifications.unshift(notification);
+
+          if (!notification.isRead) {
+            this.unreadCount++;
+            this.updateNotificationCounter();
+          }
+
+          this.showToastNotification(notification);
+          this.updateNotificationPanel();
+
+          this.log(
+            `📢 WebSocket notification added to panel: "${notification.title}"`,
+            "info"
+          );
+          this.log(
+            `🔍 DEBUG: Current notifications count after: ${this.notifications.length}`,
+            "info"
+          );
+        }
+
+        showChatToast(chatData) {
+          const toast = document.createElement("div");
+          toast.className = "toast-notification chat-message high-priority";
+
+          const messageTypeIcon = this.getChatMessageIcon(chatData.messageType);
+          const messagePreview =
+            chatData.message.length > 50
+              ? chatData.message.substring(0, 50) + "..."
+              : chatData.message;
+
+          toast.innerHTML = `
+                    <div class="notification-title">${messageTypeIcon} New Chat Message</div>
+                    <div class="notification-content">From: ${chatData.fromUserId}<br/>${messagePreview}</div>
+                    <div class="notification-meta">
+                        <span class="notification-priority priority-high">Chat</span>
+                        <span class="notification-time">Just now</span>
+                    </div>
+                    <div class="notification-actions">
+                        <button class="notification-btn primary" onclick="chatClient.openChatFromNotification('${chatData.chatroomId}')">Open Chat</button>
+                    </div>
+                `;
+
+          document.body.appendChild(toast);
+
+          // Show toast with animation
+          setTimeout(() => toast.classList.add("show"), 100);
+
+          // Auto-hide after 8 seconds (longer for chat messages)
+          setTimeout(() => {
+            toast.classList.remove("show");
+            setTimeout(() => {
+              if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+              }
+            }, 300);
+          }, 8000);
+        }
+
+        showToastNotification(notification) {
+          const toast = document.createElement("div");
+          // Safely handle type conversion for CSS classes
+          const typeClass =
+            typeof notification.type === "string"
+              ? notification.type
+                  .toLowerCase()
+                  .replace(/([a-z])([A-Z])/g, "$1-$2")
+                  .toLowerCase()
+              : "unknown";
+          const priorityClass =
+            typeof notification.priority === "string"
+              ? notification.priority.toLowerCase()
+              : "normal";
+
+          toast.className = `toast-notification ${typeClass} ${priorityClass}-priority`;
+
+          const priorityClassForDisplay = this.getPriorityClass(
+            notification.priority
+          );
+          const priorityIcon = this.getPriorityIcon(notification.priority);
+
+          toast.innerHTML = `
+                    <div class="notification-title">${priorityIcon} ${
+            notification.title
+          }</div>
+                    <div class="notification-content">${
+                      notification.content
+                    }</div>
+                    <div class="notification-meta">
+                        <span class="notification-priority ${priorityClassForDisplay}">${
+            notification.priority
+          }</span>
+                        <span class="notification-time">Just now</span>
+                    </div>
+                    ${
+                      notification.actionUrl
+                        ? `
+                        <div class="notification-actions">
+                            <button class="notification-btn primary" onclick="window.open('${notification.actionUrl}', '_blank')">View Details</button>
+                        </div>
+                    `
+                        : ""
+                    }
+                `;
+
+          document.body.appendChild(toast);
+
+          // Show toast
+          setTimeout(() => toast.classList.add("show"), 100);
+
+          // Auto-hide after 5 seconds
+          setTimeout(() => {
+            toast.classList.remove("show");
+            setTimeout(() => {
+              if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+              }
+            }, 300);
+          }, 5000);
+        }
+
+        updateNotificationPanel() {
+          this.log(
+            `🔍 DEBUG: updateNotificationPanel called, notifications count: ${this.notifications.length}`,
+            "info"
+          );
+          const notificationList = document.getElementById("notificationList");
+          const emptyNotifications =
+            document.getElementById("emptyNotifications");
+
+          if (this.notifications.length === 0) {
+            this.log(`🔍 DEBUG: No notifications, showing empty state`, "info");
+            emptyNotifications.style.display = "block";
+            return;
+          }
+
+          this.log(
+            `🔍 DEBUG: Found ${this.notifications.length} notifications, hiding empty state`,
+            "info"
+          );
+          emptyNotifications.style.display = "none";
+
+          // Clear existing notifications except empty state
+          const existingItems =
+            notificationList.querySelectorAll(".notification-item");
+          this.log(
+            `🔍 DEBUG: Clearing ${existingItems.length} existing notification items`,
+            "info"
+          );
+          existingItems.forEach((item) => item.remove());
+
+          // Add notifications
+          this.notifications.forEach((notification, index) => {
+            this.log(
+              `🔍 DEBUG: Creating element for notification ${index + 1}: ${
+                notification.title
+              }`,
+              "info"
+            );
+            const notificationElement =
+              this.createNotificationElement(notification);
+            notificationList.appendChild(notificationElement);
+          });
+
+          this.log(`🔍 DEBUG: updateNotificationPanel completed`, "info");
+        }
+
+        createNotificationElement(notification) {
+          const div = document.createElement("div");
+          const priorityClass = this.getPriorityClass(notification.priority);
+          const priorityIcon = this.getPriorityIcon(notification.priority);
+          const timeAgo = this.getTimeAgo(new Date(notification.receivedAt));
+          const sourceIcon = notification.source === "database" ? "💾" : "⚡";
+          const sourceText =
+            notification.source === "database" ? "Stored" : "Live";
+
+          // Safely handle type and priority for CSS classes
+          const typeClass =
+            typeof notification.type === "string"
+              ? notification.type
+                  .toLowerCase()
+                  .replace(/([a-z])([A-Z])/g, "$1-$2")
+                  .toLowerCase()
+              : "unknown";
+          const priorityClassForCSS =
+            typeof notification.priority === "string"
+              ? notification.priority.toLowerCase()
+              : "normal";
+
+          div.className = `notification-item ${
+            !notification.isRead ? "unread" : ""
+          } ${typeClass} ${priorityClassForCSS}-priority`;
+
+          div.innerHTML = `
+                    <div class="notification-title">${priorityIcon} ${
+            notification.title
+          }</div>
+                    <div class="notification-content">${
+                      notification.content
+                    }</div>
+                    <div class="notification-meta">
+                        <span class="notification-priority ${priorityClass}">${
+            notification.priority
+          }</span>
+                        <span class="notification-time">${timeAgo}</span>
+                        <span style="margin-left: auto; font-size: 0.7rem; color: #999;">${sourceIcon} ${sourceText}</span>
+                    </div>
+                    ${
+                      !notification.isRead
+                        ? `
+                        <div class="notification-actions">
+                            ${
+                              notification.actionUrl
+                                ? `<button class="notification-btn primary" onclick="window.open('${notification.actionUrl}', '_blank')">View Details</button>`
+                                : ""
+                            }
+                            <button class="notification-btn secondary" onclick="wsTest.markAsRead('${
+                              notification.id
+                            }')">Mark as Read</button>
+                        </div>
+                    `
+                        : `
+                        <div class="notification-actions" style="opacity: 0.6;">
+                            ${
+                              notification.actionUrl
+                                ? `<button class="notification-btn primary" onclick="window.open('${notification.actionUrl}', '_blank')">View Details</button>`
+                                : ""
+                            }
+                            <span style="font-size: 0.7rem; color: #999;">✅ Read</span>
+                        </div>
+                    `
+                    }
+                `;
+
+          return div;
+        }
+
+        async markNotificationAsRead(notificationId) {
+          try {
+            const userId = this.extractUserIdFromToken();
+            if (!userId) return;
+
+            const endpoint = `http://localhost:5221/api/v1/account/users/${userId}/notifications/${notificationId}/read`;
+            await this.makeApiRequest(endpoint, { method: "PUT" });
+
+            const notification = this.notifications.find(
+              (n) => n.id === notificationId
+            );
+            if (notification && !notification.isRead) {
+              notification.isRead = true;
+              this.unreadCount = Math.max(0, this.unreadCount - 1);
+              this.updateNotificationCounter();
+              this.updateNotificationPanel();
+            }
+
+            this.log(
+              `✅ Marked notification as read: ${notificationId}`,
+              "success"
+            );
+          } catch (error) {
+            this.log(
+              `❌ Failed to mark notification as read: ${error.message}`,
+              "error"
+            );
+          }
+        }
+
+        async markAllNotificationsAsRead() {
+          try {
+            const userId = this.extractUserIdFromToken();
+            if (!userId) return;
+
+            const endpoint = `http://localhost:5221/api/v1/account/users/${userId}/notifications/read-all`;
+            await this.makeApiRequest(endpoint, { method: "PUT" });
+
+            this.notifications.forEach((notification) => {
+              notification.isRead = true;
+            });
+
+            this.unreadCount = 0;
+            this.updateNotificationCounter();
+            this.updateNotificationPanel();
+
+            this.log("✅ Marked all notifications as read", "success");
+            this.showNotification(
+              "All notifications marked as read",
+              "success"
+            );
+          } catch (error) {
+            this.log(
+              `❌ Failed to mark all notifications as read: ${error.message}`,
+              "error"
+            );
+          }
+        }
+
+        markAsRead(notificationId) {
+          const notification = this.notifications.find(
+            (n) => n.id === notificationId
+          );
+          if (notification) {
+            if (notification.source === "database") {
+              this.markNotificationAsRead(notificationId);
+            } else {
+              if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                const markReadMessage = {
+                  type: "notification.mark_read",
+                  payload: { notificationId: notificationId },
+                };
+                this.log(
+                  `📤 Sending mark-as-read WebSocket message: ${JSON.stringify(
+                    markReadMessage
+                  )}`,
+                  "info"
+                );
+                this.ws.send(JSON.stringify(markReadMessage));
+                this.log(
+                  `📝 Marked WebSocket notification as read: ${notificationId}`,
+                  "info"
+                );
+              } else {
+                this.log(
+                  `❌ Cannot send mark-as-read: WebSocket not connected`,
+                  "error"
+                );
+              }
+
+              if (!notification.isRead) {
+                notification.isRead = true;
+                this.unreadCount = Math.max(0, this.unreadCount - 1);
+                this.updateNotificationCounter();
+                this.updateNotificationPanel();
+              }
+            }
+          }
+        }
+
+        updateNotificationCounter() {
+          const counter = document.getElementById("notificationCounter");
+          if (this.unreadCount > 0) {
+            counter.textContent =
+              this.unreadCount > 99 ? "99+" : this.unreadCount.toString();
+            counter.style.display = "flex";
+          } else {
+            counter.style.display = "none";
+          }
+        }
+
+        toggleNotificationPanel() {
+          this.notificationPanelVisible = !this.notificationPanelVisible;
+          const panel = document.getElementById("notificationPanel");
+
+          this.log(
+            `🔍 DEBUG: Toggling notification panel. Visible: ${this.notificationPanelVisible}`,
+            "info"
+          );
+          this.log(
+            `🔍 DEBUG: Current notifications in array: ${this.notifications.length}`,
+            "info"
+          );
+
+          if (this.notificationPanelVisible) {
+            panel.classList.add("show");
+            this.updateNotificationPanel();
+            this.log(`🔍 DEBUG: Panel opened and updated`, "info");
+          } else {
+            panel.classList.remove("show");
+            this.log(`🔍 DEBUG: Panel closed`, "info");
+          }
+        }
+
+        getPriorityClass(priority) {
+          // Handle both numeric and string priority values
+          let priorityStr = priority;
+          if (typeof priority === "number") {
+            priorityStr = this.getPriorityString(priority);
+          }
+
+          switch (priorityStr.toLowerCase()) {
+            case "low":
+              return "priority-low";
+            case "normal":
+              return "priority-normal";
+            case "high":
+              return "priority-high";
+            case "urgent":
+              return "priority-urgent";
+            default:
+              return "priority-normal";
+          }
+        }
+
+        getPriorityIcon(priority) {
+          // Handle both numeric and string priority values
+          let priorityStr = priority;
+          if (typeof priority === "number") {
+            priorityStr = this.getPriorityString(priority);
+          }
+
+          switch (priorityStr.toLowerCase()) {
+            case "low":
+              return "🟢";
+            case "normal":
+              return "🔵";
+            case "high":
+              return "🟠";
+            case "urgent":
+              return "🔴";
+            default:
+              return "🔵";
+          }
+        }
+
+        getTimeAgo(date) {
+          const now = new Date();
+          const diff = now - date;
+          const minutes = Math.floor(diff / 60000);
+          const hours = Math.floor(diff / 3600000);
+          const days = Math.floor(diff / 86400000);
+
+          if (minutes < 1) return "Just now";
+          if (minutes < 60) return `${minutes}m ago`;
+          if (hours < 24) return `${hours}h ago`;
+          return `${days}d ago`;
+        }
+
+        // Simulate booking notification for testing
+        simulateBookingNotification() {
+          const mockNotification = {
+            Id: "booking-" + Date.now(),
+            Title: "New Booking Request",
+            Content:
+              "You have a new booking request from John Doe for General Consultation on Dec 15, 2024 at 2:00 PM.",
+            NotificationType: "BookingRequest",
+            Priority: "High",
+            ActionUrl: "/bookings/pending/123",
+            UserId: "a9b0c1d2-e3f4-5566-7788-223344556677",
+            ExpiresAt: null,
+            IsRead: false,
+            RelatedEntityType: "Booking",
+          };
+
+          this.handleNotificationReceived(mockNotification);
+          this.log("🩺 Simulated booking notification for testing", "info");
+        }
+
+        // Frontend Subscription Best Practices for Care Providers
+        subscribeToProviderTopics() {
+          this.log("🔎 Debug: subscribeToProviderTopics called", "info");
+
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            this.log("❌ Cannot subscribe: WebSocket not connected", "error");
+            this.log(
+              `🔎 WebSocket state: ${this.ws ? this.ws.readyState : "null"}`,
+              "error"
+            );
+            this.log(`🔎 WebSocket.OPEN constant: ${WebSocket.OPEN}`, "info");
+            return;
+          }
+
+          this.log("✅ WebSocket is connected and ready", "success");
+
+          // Get user ID from JWT token or use a default for testing
+          const userId =
+            this.extractUserIdFromToken() ||
+            "a9b0c1d2-e3f4-5566-7788-223344556677";
+          this.log(`🎯 User ID extracted: ${userId}`, "info");
+
+          const topics = ["booking.request"];
+
+          this.log(
+            "🔔 Manually subscribing to care provider topics...",
+            "info"
+          );
+
+          topics.forEach((topic) => {
+            const subscribeMessage = {
+              type: "notification.subscribe",
+              payload: { topic: topic },
+            };
+
+            this.log(
+              `📤 Sending subscription message: ${JSON.stringify(
+                subscribeMessage
+              )}`,
+              "info"
+            );
+
+            try {
+              this.ws.send(JSON.stringify(subscribeMessage));
+              this.log(
+                `📡 Successfully sent subscription for topic: ${topic}`,
+                "sent"
+              );
+            } catch (error) {
+              this.log(
+                `❌ Failed to send subscription for topic ${topic}: ${error.message}`,
+                "error"
+              );
+            }
+          });
+
+          this.showNotification(
+            "Successfully subscribed to care provider topics!",
+            "success"
+          );
+        }
+
+        // Extract provider ID from JWT token (simplified for demo)
+        // Extract user ID from JWT token for both Clients and CareProviders
+        extractUserIdFromToken(token = null) {
+          try {
+            const tokenToUse =
+              token || document.getElementById("token").value.trim();
+            if (!tokenToUse) return null;
+
+            // Basic JWT parsing (for demo purposes)
+            const parts = tokenToUse.split(".");
+            if (parts.length !== 3) {
+              this.log("⚠️ Invalid JWT token format", "warning");
+              return null;
+            }
+
+            const payload = parts[1];
+            if (!payload) return null;
+
+            const decoded = JSON.parse(atob(payload));
+            // Check multiple possible user ID claims for both user types
+            return (
+              decoded.sub ||
+              decoded.user_id ||
+              decoded.userId ||
+              decoded.nameid ||
+              decoded.nameidentifier ||
+              decoded[
+                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+              ] || // Full namespace claim
+              decoded.id ||
+              null
+            );
+          } catch (error) {
+            this.log(
+              `⚠️ Could not extract user ID from token: ${error.message}`,
+              "warning"
+            );
+            return null;
+          }
+        }
+
+        // Legacy method for backward compatibility
+        extractProviderIdFromToken() {
+          return this.extractUserIdFromToken();
+        }
+
+        // Chat-specific message handlers for real-time chat functionality
+        handleIncomingMessage(payload) {
+          this.log(
+            `💬 Chat message received from ${payload.from_user_id}:`,
+            "info"
+          );
+          this.log(`📝 Message: ${payload.message}`, "received");
+          if (payload.fileUrl) {
+            this.log(`📎 File: ${payload.fileUrl}`, "received");
+          }
+          this.log(`🏠 Chatroom: ${payload.chatroomId}`, "received");
+          this.log(`📅 Created: ${payload.createdAt}`, "received");
+          this.log(
+            `🔍 Full payload: ${JSON.stringify(payload, null, 2)}`,
+            "received"
+          );
+
+          // Store sender information for later use
+          if (payload.from_user_id && payload.from_user_name) {
+            this.senderInfo = this.senderInfo || {};
+            this.senderInfo[payload.from_user_id] = payload.from_user_name;
+            this.log(
+              `💾 Stored sender info: ${payload.from_user_id} -> ${payload.from_user_name}`,
+              "info"
+            );
+          } else {
+            this.log(
+              `⚠️ Missing sender info in payload - from_user_id: ${payload.from_user_id}, from_user_name: ${payload.from_user_name}`,
+              "warning"
+            );
+          }
+
+          // Log current senderInfo for debugging
+          this.log(
+            `🔍 Current senderInfo: ${JSON.stringify(this.senderInfo)}`,
+            "info"
+          );
+
+          // Add to messages and display - using the correct snake_case property names
+          const messageData = {
+            message: payload.message || "",
+            fileUrl: payload.fileUrl,
+            createdAt: payload.createdAt || new Date().toISOString(),
+            senderId: payload.from_user_id,
+            isOwn: false,
+          };
+
+          const chatroomId =
+            payload.chatroomId ||
+            this.generateChatroomId(this.currentUserId, messageData.senderId);
+          this.log(
+            `🔍 Processed messageData: ${JSON.stringify(messageData, null, 2)}`,
+            "info"
+          );
+          this.log(`🔍 Determined chatroomId: ${chatroomId}`, "info");
+          this.log(`🔍 Current chatroom: ${this.currentChatroom}`, "info");
+
+          this.addMessageToDisplay(messageData, chatroomId);
+
+          // Update the chatroom list with the last message
+          this.updateChatroomWithLastMessage(chatroomId, messageData);
+
+          // Show notification if not in current chatroom
+          if (chatroomId !== this.currentChatroom) {
+            this.showChatNotification(messageData, chatroomId);
+          }
+        }
+
+        // Method to update chatroom list with the last message
+        updateChatroomWithLastMessage(chatroomId, messageData) {
+          // Find the chatroom in our list
+          const chatroom = this.chatrooms.find(
+            (c) =>
+              this.generateChatroomId(this.currentUserId, c.user.id) ===
+              chatroomId
+          );
+
+          if (chatroom) {
+            // Update the lastMessage property
+            chatroom.lastMessage = {
+              message: messageData.message,
+              createdAt: messageData.createdAt,
+            };
+
+            // Update the chatroom list display
+            this.updateChatroomsList();
+            this.log(
+              `✅ Updated chatroom ${chatroomId} with last message: ${messageData.message}`,
+              "success"
+            );
+          } else {
+            // If chatroom not found, we might need to create it
+            this.log(
+              `⚠️ Chatroom ${chatroomId} not found in list, cannot update last message`,
+              "warning"
+            );
+          }
+        }
+
+        showChatNotification(messageData, chatroomId) {
+          const messagePreview =
+            messageData.message.length > 50
+              ? messageData.message.substring(0, 50) + "..."
+              : messageData.message;
+
+          // Store the message data for later use when opening from notification
+          this.pendingMessages = this.pendingMessages || {};
+          this.pendingMessages[chatroomId] = messageData;
+
+          // Create a notification with a button to view the message
+          const notification = document.createElement("div");
+          notification.className = "notification info";
+          notification.innerHTML = `
+                    <div>New message: ${messagePreview}</div>
+                    <div class="notification-actions" style="margin-top: 10px;">
+                        <button class="notification-btn primary" onclick="chatClient.openChatFromNotification('${chatroomId}')">View Message</button>
+                    </div>
+                `;
+
+          document.body.appendChild(notification);
+
+          // Trigger animation
+          setTimeout(() => notification.classList.add("show"), 100);
+
+          // Remove after 5 seconds
+          setTimeout(() => {
+            notification.classList.remove("show");
+            setTimeout(() => document.body.removeChild(notification), 300);
+          }, 5000);
+        }
+
+        openChatroom(chatroomId) {
+          this.log(`🏠 Opening chatroom: ${chatroomId}`, "info");
+          // Find chatroom and select it
+          const chatroom = this.chatrooms.find(
+            (c) =>
+              this.generateChatroomId(this.currentUserId, c.user.id) ===
+              chatroomId
+          );
+
+          if (chatroom) {
+            this.selectChatroom(
+              chatroomId,
+              chatroom.user.id,
+              chatroom.user.name
+            );
+          } else {
+            this.showNotification(
+              `Chatroom ${chatroomId} not found`,
+              "warning"
+            );
+          }
+        }
+
+        // New method to open chat from notification
+        openChatFromNotification(chatroomId) {
+          this.log(
+            `🏠 Opening chatroom from notification: ${chatroomId}`,
+            "info"
+          );
+          this.log(
+            `🔍 Current senderInfo: ${JSON.stringify(this.senderInfo)}`,
+            "info"
+          );
+
+          // Find chatroom and select it
+          const chatroom = this.chatrooms.find(
+            (c) =>
+              this.generateChatroomId(this.currentUserId, c.user.id) ===
+              chatroomId
+          );
+
+          if (chatroom) {
+            this.selectChatroom(
+              chatroomId,
+              chatroom.user.id,
+              chatroom.user.name
+            );
+          } else {
+            // If chatroom not found in current list, try to determine the recipient and create a temporary chatroom
+            this.log(
+              `🔍 Chatroom ${chatroomId} not found in current list, attempting to reconstruct`,
+              "warning"
+            );
+
+            // Extract user IDs from chatroom ID (format: userId1-userId2 where userId1 < userId2)
+            try {
+              // Properly parse the chatroom ID by finding the correct dash position
+              // GUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 characters)
+              // Chatroom ID format: guid1-guid2 (36 + 1 + 36 = 73 characters)
+              // We need to split at position 36 (after the first GUID)
+
+              if (chatroomId.length >= 73 && chatroomId.charAt(36) === "-") {
+                const userId1 = chatroomId.substring(0, 36);
+                const userId2 = chatroomId.substring(37); // 36 + 1 to skip the dash
+
+                this.log(`🔍 Parsed userId1: ${userId1}`, "info");
+                this.log(`🔍 Parsed userId2: ${userId2}`, "info");
+
+                // Determine which user is the recipient (the one who is not the current user)
+                const recipientId =
+                  userId1 === this.currentUserId ? userId2 : userId1;
+
+                this.log(`🔍 Determined recipientId: ${recipientId}`, "info");
+
+                // Try to get the sender name from stored information
+                let recipientName = "Unknown User";
+                if (this.senderInfo && this.senderInfo[recipientId]) {
+                  recipientName = this.senderInfo[recipientId];
+                  this.log(
+                    `✅ Retrieved sender name from cache: ${recipientName}`,
+                    "success"
+                  );
+                } else {
+                  this.log(
+                    `⚠️ Sender name not found in cache for ${recipientId}`,
+                    "warning"
+                  );
+                  this.log(
+                    `🔍 senderInfo keys: ${Object.keys(this.senderInfo || {})}`,
+                    "warning"
+                  );
+                }
+
+                // Create a chatroom entry with actual user info
+                const chatroom = {
+                  user: {
+                    id: recipientId,
+                    name: recipientName,
+                    profilePic: "",
+                  },
+                  lastMessage: null,
+                };
+
+                // Add to chatrooms list
+                this.chatrooms.unshift(chatroom);
+
+                // Select the chatroom
+                this.selectChatroom(chatroomId, recipientId, recipientName);
+              } else {
+                this.showNotification(`Invalid chatroom ID format`, "error");
+              }
+            } catch (error) {
+              this.log(
+                `❌ Error reconstructing chatroom: ${error.message}`,
+                "error"
+              );
+              this.showNotification(
+                `Could not open chatroom: ${error.message}`,
+                "error"
+              );
+            }
+          }
+        }
+        handleChatMessage(payload) {
+          this.log(
+            `💬 Chat message received from ${payload.from_user_id}:`,
+            "info"
+          );
+          this.log(`📝 Message: ${payload.message}`, "received");
+          if (payload.fileUrl) {
+            this.log(`📎 File: ${payload.fileUrl}`, "received");
+          }
+          this.log(`🏠 Chatroom: ${payload.chatroomId}`, "received");
+          this.log(`📅 Created: ${payload.createdAt}`, "received");
+
+          // Create a toast notification for the new chat message
+          const messageType = this.determineChatMessageType(
+            payload.message,
+            payload.fileUrl
+          );
+          const messagePreview =
+            payload.message ||
+            (payload.fileUrl ? "File attachment" : "Message");
+
+          this.showChatToast({
+            fromUserId: payload.from_user_id,
+            message: messagePreview,
+            messageType: messageType,
+            chatroomId: payload.chatroomId,
+            hasFile: !!payload.fileUrl,
+          });
+        }
+
+        handleTypingIndicator(payload) {
+          const fromUserId = payload.from_user_id;
+          const chatroomId = payload.chatroomId;
+          const isTyping = payload.isTyping;
+
+          const typingStatus = isTyping ? "started typing" : "stopped typing";
+          this.log(
+            `✍️ ${fromUserId} ${typingStatus} in chatroom ${chatroomId}`,
+            "info"
+          );
+
+          // Show typing indicator in UI
+          if (isTyping) {
+            this.showTypingIndicator(fromUserId, chatroomId);
+          } else {
+            this.hideTypingIndicator(fromUserId, chatroomId);
+          }
+        }
+
+        showTypingIndicator(fromUserId, chatroomId) {
+          // Only show if this is the current chatroom
+          if (chatroomId !== this.currentChatroom) return;
+
+          const typingIndicators = document.getElementById("typingIndicators");
+          const typingId = `typing-${fromUserId}`;
+
+          // Remove existing indicator
+          const existing = document.getElementById(typingId);
+          if (existing) existing.remove();
+
+          // Add new typing indicator
+          const indicator = document.createElement("div");
+          indicator.id = typingId;
+          indicator.className = "typing-indicator";
+          indicator.innerHTML = `
+                    <span>✍️ ${
+                      this.currentRecipient?.name || "User"
+                    } is typing</span>
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                `;
+
+          typingIndicators.appendChild(indicator);
+
+          // Auto-hide after 10 seconds
+          setTimeout(() => {
+            this.hideTypingIndicator(fromUserId, chatroomId);
+          }, 10000);
+        }
+
+        hideTypingIndicator(fromUserId, chatroomId) {
+          const typingId = `typing-${fromUserId}`;
+          const indicator = document.getElementById(typingId);
+          if (indicator) {
+            indicator.remove();
+          }
+        }
+
+        // Helper functions for chat functionality
+        determineChatMessageType(message, fileUrl) {
+          if (message && fileUrl) return "fileAndText";
+          if (fileUrl) return "file";
+          return "text";
+        }
+
+        showChatToast(chatData) {
+          const toast = document.createElement("div");
+          toast.className = "toast-notification chat-message high-priority";
+
+          const messageTypeIcon = this.getChatMessageIcon(chatData.messageType);
+          const messagePreview =
+            chatData.message.length > 50
+              ? chatData.message.substring(0, 50) + "..."
+              : chatData.message;
+
+          toast.innerHTML = `
+                    <div class="notification-title">${messageTypeIcon} New Chat Message</div>
+                    <div class="notification-content">From: ${chatData.fromUserId}<br/>${messagePreview}</div>
+                    <div class="notification-meta">
+                        <span class="notification-priority priority-high">Chat</span>
+                        <span class="notification-time">Just now</span>
+                    </div>
+                    <div class="notification-actions">
+                        <button class="notification-btn primary" onclick="chatClient.openChatFromNotification('${chatData.chatroomId}')">Open Chat</button>
+                    </div>
+                `;
+
+          document.body.appendChild(toast);
+
+          // Show toast with animation
+          setTimeout(() => toast.classList.add("show"), 100);
+
+          // Auto-hide after 8 seconds (longer for chat messages)
+          setTimeout(() => {
+            toast.classList.remove("show");
+            setTimeout(() => {
+              if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+              }
+            }, 300);
+          }, 8000);
+        }
+
+        getChatMessageIcon(messageType) {
+          switch (messageType) {
+            case "text":
+              return "💬";
+            case "file":
+              return "📎";
+            case "fileAndText":
+              return "📝";
+            default:
+              return "💬";
+          }
+        }
+
+        // Chat-specific methods for Phase 6 implementation
+        async loadChatrooms() {
+          try {
+            const token = document.getElementById("token").value.trim();
+            const response = await this.makeApiRequest(
+              "http://localhost:5221/api/chat/chatrooms",
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+
+            if (response && response.data) {
+              // Process the chatrooms data to ensure it has the correct structure
+              this.chatrooms = response.data.map((chatroom) => {
+                // Ensure each chatroom has the expected structure
+                return {
+                  user: {
+                    id: chatroom.userId || chatroom.user?.id || "",
+                    name:
+                      chatroom.userName ||
+                      chatroom.user?.name ||
+                      "Unknown User",
+                    profilePic: chatroom.user?.profilePic || "",
+                  },
+                  lastMessage: chatroom.lastMessage || null,
+                };
+              });
+
+              // Try to fetch last messages for chatrooms that don't have them
+              await this.fetchMissingLastMessages();
+
+              this.updateChatroomsList();
+              this.log(
+                `📱 Loaded ${this.chatrooms.length} chatrooms`,
+                "success"
+              );
+            } else {
+              // Handle case where API returns empty response
+              this.chatrooms = [];
+              this.updateChatroomsList();
+              this.log("📱 No chatrooms found in API response", "info");
+            }
+          } catch (error) {
+            this.log(`❌ Failed to load chatrooms: ${error.message}`, "error");
+            this.showSampleChatrooms();
+          }
+        }
+
+        // Method to fetch last messages for chatrooms that don't have them
+        async fetchMissingLastMessages() {
+          // Find chatrooms without lastMessage data
+          const chatroomsWithoutLastMessage = this.chatrooms.filter(
+            (chatroom) => !chatroom.lastMessage
+          );
+
+          if (chatroomsWithoutLastMessage.length === 0) {
+            this.log("✅ All chatrooms already have lastMessage data", "info");
+            return;
+          }
+
+          this.log(
+            `🔍 Fetching last messages for ${chatroomsWithoutLastMessage.length} chatrooms`,
+            "info"
+          );
+
+          // Fetch last message for each chatroom
+          for (const chatroom of chatroomsWithoutLastMessage) {
+            try {
+              const chatroomId = this.generateChatroomId(
+                this.currentUserId,
+                chatroom.user.id
+              );
+              const token = document.getElementById("token").value.trim();
+              const response = await this.makeApiRequest(
+                `http://localhost:5221/api/chat/chatrooms/${chatroomId}/messages?limit=1`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
+              if (response && response.data && response.data.length > 0) {
+                // Get the most recent message (should be first since API should return newest first)
+                const lastMessage = response.data[0];
+                chatroom.lastMessage = {
+                  message: lastMessage.message,
+                  createdAt: lastMessage.createdAt,
+                };
+                this.log(
+                  `✅ Fetched last message for chatroom ${chatroomId}: ${lastMessage.message}`,
+                  "success"
+                );
+              } else {
+                this.log(
+                  `🔍 No messages found for chatroom ${chatroomId}`,
+                  "info"
+                );
+              }
+            } catch (error) {
+              this.log(
+                `⚠️ Failed to fetch last message for chatroom ${chatroom.user.id}: ${error.message}`,
+                "warning"
+              );
+            }
+          }
+        }
+
+        updateChatroomsList() {
+          const chatroomsList = document.getElementById("chatroomsList");
+
+          if (this.chatrooms.length === 0) {
+            chatroomsList.innerHTML =
+              '<div class="empty-state"><h3>📱 No Conversations</h3><p>Start a new conversation to see it here</p></div>';
+            return;
+          }
+
+          chatroomsList.innerHTML = this.chatrooms
+            .map((chatroom) => {
+              const chatroomId = this.generateChatroomId(
+                this.currentUserId,
+                chatroom.user.id
+              );
+              const isActive = this.currentChatroom === chatroomId;
+              const initials = this.getInitials(chatroom.user.name);
+
+              return `
+                        <div class="chatroom-item ${
+                          isActive ? "active" : ""
+                        }" onclick="chatClient.selectChatroom('${chatroomId}', '${
+                chatroom.user.id
+              }', '${chatroom.user.name}')">
+                            <div class="profile-pic">${initials}</div>
+                            <div class="chatroom-info">
+                                <div class="chatroom-name">${
+                                  chatroom.user.name
+                                }</div>
+                                <div class="last-message">${
+                                  chatroom.lastMessage?.message ||
+                                  "No messages yet"
+                                }</div>
+                            </div>
+                            <div class="message-time">${
+                              chatroom.lastMessage?.createdAt
+                                ? this.formatTime(
+                                    chatroom.lastMessage.createdAt
+                                  )
+                                : ""
+                            }</div>
+                        </div>
+                    `;
+            })
+            .join("");
+        }
+
+        showSampleChatrooms() {
+          this.chatrooms = [
+            {
+              user: {
+                id: "12345678-1234-1234-1234-123456789012",
+                name: "John Doe",
+                profilePic: "",
+              },
+              lastMessage: {
+                message: "Hi, I need help with my appointment",
+                createdAt: new Date().toISOString(),
+              },
+            },
+            {
+              user: {
+                id: "87654321-4321-4321-4321-210987654321",
+                name: "Jane Smith",
+                profilePic: "",
+              },
+              lastMessage: {
+                message: "Thank you for the consultation!",
+                createdAt: new Date(Date.now() - 3600000).toISOString(),
+              },
+            },
+          ];
+          this.updateChatroomsList();
+          this.log("📱 Showing sample chatrooms for demonstration", "info");
+        }
+
+        async selectChatroom(chatroomId, recipientId, recipientName) {
+          this.currentChatroom = chatroomId;
+          this.currentRecipient = { id: recipientId, name: recipientName };
+
+          this.updateChatroomsList();
+          this.showChatHeader(recipientName);
+          this.showChatInput();
+          await this.loadChatHistory(chatroomId);
+
+          // Display any pending message for this chatroom
+          this.displayPendingMessage(chatroomId);
+
+          this.log(
+            `📱 Selected chatroom: ${chatroomId} with ${recipientName}`,
+            "info"
+          );
+        }
+
+        openChatroomFromNotification(chatroomId, senderId) {
+          const chatroom = this.chatrooms.find((c) => c.user.id === senderId);
+          if (chatroom) {
+            this.selectChatroom(
+              chatroomId,
+              chatroom.user.id,
+              chatroom.user.name
+            );
+          }
+        }
+
+        // New method to open chat from notification
+        openChatFromNotification(chatroomId) {
+          this.log(
+            `🏠 Opening chatroom from notification: ${chatroomId}`,
+            "info"
+          );
+          this.log(
+            `🔍 Current senderInfo: ${JSON.stringify(this.senderInfo)}`,
+            "info"
+          );
+
+          // Find chatroom and select it
+          const chatroom = this.chatrooms.find(
+            (c) =>
+              this.generateChatroomId(this.currentUserId, c.user.id) ===
+              chatroomId
+          );
+
+          if (chatroom) {
+            this.selectChatroom(
+              chatroomId,
+              chatroom.user.id,
+              chatroom.user.name
+            );
+            // Display the pending message if available
+            this.displayPendingMessage(chatroomId);
+          } else {
+            // If chatroom not found in current list, try to determine the recipient and create a temporary chatroom
+            this.log(
+              `🔍 Chatroom ${chatroomId} not found in current list, attempting to reconstruct`,
+              "warning"
+            );
+
+            // Extract user IDs from chatroom ID (format: userId1-userId2 where userId1 < userId2)
+            try {
+              // Properly parse the chatroom ID by finding the correct dash position
+              // GUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 characters)
+              // Chatroom ID format: guid1-guid2 (36 + 1 + 36 = 73 characters)
+              // We need to split at position 36 (after the first GUID)
+
+              if (chatroomId.length >= 73 && chatroomId.charAt(36) === "-") {
+                const userId1 = chatroomId.substring(0, 36);
+                const userId2 = chatroomId.substring(37); // 36 + 1 to skip the dash
+
+                this.log(`🔍 Parsed userId1: ${userId1}`, "info");
+                this.log(`🔍 Parsed userId2: ${userId2}`, "info");
+
+                // Determine which user is the recipient (the one who is not the current user)
+                const recipientId =
+                  userId1 === this.currentUserId ? userId2 : userId1;
+
+                this.log(`🔍 Determined recipientId: ${recipientId}`, "info");
+
+                // Try to get the sender name from stored information
+                let recipientName = "Unknown User";
+                if (this.senderInfo && this.senderInfo[recipientId]) {
+                  recipientName = this.senderInfo[recipientId];
+                  this.log(
+                    `✅ Retrieved sender name from cache: ${recipientName}`,
+                    "success"
+                  );
+                } else {
+                  this.log(
+                    `⚠️ Sender name not found in cache for ${recipientId}`,
+                    "warning"
+                  );
+                  this.log(
+                    `🔍 senderInfo keys: ${Object.keys(this.senderInfo || {})}`,
+                    "warning"
+                  );
+                }
+
+                // Create a chatroom entry with actual user info
+                const chatroom = {
+                  user: {
+                    id: recipientId,
+                    name: recipientName,
+                    profilePic: "",
+                  },
+                  lastMessage: null,
+                };
+
+                // Add to chatrooms list
+                this.chatrooms.unshift(chatroom);
+
+                // Select the chatroom
+                this.selectChatroom(chatroomId, recipientId, recipientName);
+                // Display the pending message if available
+                this.displayPendingMessage(chatroomId);
+              } else {
+                this.showNotification(`Invalid chatroom ID format`, "error");
+              }
+            } catch (error) {
+              this.log(
+                `❌ Error reconstructing chatroom: ${error.message}`,
+                "error"
+              );
+              this.showNotification(
+                `Could not open chatroom: ${error.message}`,
+                "error"
+              );
+            }
+          }
+        }
+
+        displayPendingMessage(chatroomId) {
+          // Check if there's a pending message for this chatroom
+          if (this.pendingMessages && this.pendingMessages[chatroomId]) {
+            const messageData = this.pendingMessages[chatroomId];
+            this.log(
+              `🔍 Displaying pending message for chatroom ${chatroomId}`,
+              "info"
+            );
+            this.log(
+              `🔍 Pending message data: ${JSON.stringify(messageData)}`,
+              "info"
+            );
+
+            // Add the pending message to the messages array for this chatroom
+            if (!this.messages[chatroomId]) {
+              this.messages[chatroomId] = [];
+            }
+
+            // Check if the message is already in the array to avoid duplicates
+            const messageExists = this.messages[chatroomId].some(
+              (msg) =>
+                msg.message === messageData.message &&
+                msg.senderId === messageData.senderId &&
+                msg.createdAt === messageData.createdAt
+            );
+
+            if (!messageExists) {
+              this.messages[chatroomId].push(messageData);
+              this.log(
+                `✅ Added pending message to chatroom ${chatroomId}`,
+                "success"
+              );
+            } else {
+              this.log(
+                `⚠️ Pending message already exists in chatroom ${chatroomId}`,
+                "warning"
+              );
+            }
+
+            // Display the messages
+            this.displayMessages(chatroomId);
+
+            // Clean up the pending message
+            delete this.pendingMessages[chatroomId];
+          } else {
+            this.log(
+              `🔍 No pending message found for chatroom ${chatroomId}`,
+              "info"
+            );
+          }
+        }
+
+        // New Chat functionality for testing between different users
+        startNewChat() {
+          const recipientUserId = document
+            .getElementById("recipientUserId")
+            .value.trim();
+          const recipientName =
+            document.getElementById("recipientName").value.trim() ||
+            "Unknown User";
+
+          if (!recipientUserId) {
+            this.showNotification(
+              "Please enter a recipient user ID",
+              "warning"
+            );
+            return;
+          }
+
+          // Validate GUID format
+          if (!this.isValidGuid(recipientUserId)) {
+            this.showNotification(
+              "Please enter a valid GUID format for user ID",
+              "error"
+            );
+            return;
+          }
+
+          if (recipientUserId === this.currentUserId) {
+            this.showNotification("Cannot start chat with yourself", "warning");
+            return;
+          }
+
+          // Generate chatroom ID
+          const chatroomId = this.generateChatroomId(
+            this.currentUserId,
+            recipientUserId
+          );
+
+          // Check if chatroom already exists
+          const existingChatroom = this.chatrooms.find(
+            (c) =>
+              this.generateChatroomId(this.currentUserId, c.user.id) ===
+              chatroomId
+          );
+
+          if (existingChatroom) {
+            this.showNotification("Chat with this user already exists", "info");
+            this.selectChatroom(
+              chatroomId,
+              existingChatroom.user.id,
+              existingChatroom.user.name
+            );
+            return;
+          }
+
+          // Create new chatroom entry
+          const newChatroom = {
+            user: {
+              id: recipientUserId,
+              name: recipientName,
+              profilePic: "",
+            },
+            lastMessage: null,
+          };
+
+          // Add to chatrooms list
+          this.chatrooms.unshift(newChatroom);
+          this.updateChatroomsList();
+
+          // Select the new chatroom
+          this.selectChatroom(chatroomId, recipientUserId, recipientName);
+
+          // Clear form
+          document.getElementById("recipientUserId").value = "";
+          document.getElementById("recipientName").value = "";
+
+          this.log(
+            `💬 Created new chat with ${recipientName} (${recipientUserId})`,
+            "success"
+          );
+          this.showNotification(
+            `Started new chat with ${recipientName}`,
+            "success"
+          );
+        }
+
+        isValidGuid(str) {
+          const guidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          return guidRegex.test(str);
+        }
+
+        showChatInput() {
+          document.getElementById("chatInput").style.display = "block";
+          document.getElementById("sendBtn").disabled = false;
+          document.getElementById("messageInput").focus();
+        }
+
+        async loadChatHistory(chatroomId) {
+          this.log(
+            `🔍 Loading chat history for chatroom ${chatroomId}`,
+            "info"
+          );
+
+          try {
+            const token = document.getElementById("token").value.trim();
+            const response = await this.makeApiRequest(
+              `http://localhost:5221/api/chat/chatrooms/${chatroomId}/messages`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+
+            if (response && response.data) {
+              this.messages[chatroomId] = response.data;
+              this.displayMessages(chatroomId);
+            }
+          } catch (error) {
+            this.log(
+              `⚠️ Error loading chat history: ${error.message}`,
+              "warning"
+            );
+            this.showSampleMessages(chatroomId);
+          }
+        }
+
+        showSampleMessages(chatroomId) {
+          this.log(
+            `🔍 Showing sample messages for chatroom ${chatroomId}`,
+            "info"
+          );
+          this.log(`🔍 Current user ID: ${this.currentUserId}`, "info");
+          this.log(
+            `🔍 Current recipient: ${JSON.stringify(this.currentRecipient)}`,
+            "info"
+          );
+
+          this.messages[chatroomId] = [
+            {
+              type: "text",
+              message: "Hello! How can I help you today?",
+              createdAt: new Date(Date.now() - 7200000).toISOString(),
+              senderId: this.currentUserId,
+              isOwn: true,
+            },
+            {
+              type: "text",
+              message:
+                "Hi, I have some questions about my upcoming appointment.",
+              createdAt: new Date(Date.now() - 3600000).toISOString(),
+              senderId: this.currentRecipient?.id || "unknown",
+              isOwn: false,
+            },
+          ];
+          this.displayMessages(chatroomId);
+        }
+
+        // Chat-specific missing methods
+        resetChatUI() {
+          this.currentChatroom = null;
+          this.currentRecipient = null;
+
+          // Log when this is called for debugging
+          this.log("🔧 resetChatUI called - Hiding newChatPanel", "info");
+
+          // Hide chat elements
+          document.getElementById("chatHeader").style.display = "none";
+          document.getElementById("chatInput").style.display = "none";
+          const newChatPanel = document.getElementById("newChatPanel");
+          if (newChatPanel) {
+            newChatPanel.classList.remove("connected");
+            newChatPanel.style.display = "none";
+          }
+
+          // Clear messages
+          const messagesContainer =
+            document.getElementById("messagesContainer");
+          messagesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <h3>💬 Welcome to SuperCare Chat</h3>
+                        <p>Select a conversation from the sidebar to start chatting</p>
+                        <p style="font-size: 0.8rem; margin-top: 1rem; color: #999;">Features: Real-time messaging • File sharing • Read receipts • Typing indicators</p>
+                    </div>
+                `;
+
+          this.log("🔄 Chat UI reset", "info");
+        }
+
+        showChatHeader(recipientName) {
+          const chatHeader = document.getElementById("chatHeader");
+          const chatName = document.getElementById("chatName");
+          const chatStatus = document.getElementById("chatStatus");
+          const chatProfilePic = document.getElementById("chatProfilePic");
+
+          if (chatName) chatName.textContent = recipientName;
+          if (chatStatus) chatStatus.textContent = "Online";
+          if (chatProfilePic)
+            chatProfilePic.textContent = this.getInitials(recipientName);
+
+          chatHeader.style.display = "flex";
+        }
+
+        generateChatroomId(userId1, userId2) {
+          // Sort user IDs and concatenate them with a single dash to create chatroom ID
+          // This ensures both users get the same chatroom ID regardless of who initiates
+          const ids = [userId1, userId2].sort();
+          return `${ids[0]}-${ids[1]}`;
+        }
+
+        displayMessages(chatroomId) {
+          const messagesContainer =
+            document.getElementById("messagesContainer");
+          const messages = this.messages[chatroomId] || [];
+
+          // Debug logging
+          this.log(`🔍 Displaying messages for chatroom ${chatroomId}`, "info");
+          this.log(`🔍 Messages count: ${messages.length}`, "info");
+          this.log(
+            `🔍 Current recipient: ${JSON.stringify(this.currentRecipient)}`,
+            "info"
+          );
+          this.log(`🔍 Current user ID: ${this.currentUserId}`, "info");
+
+          if (messages.length === 0) {
+            messagesContainer.innerHTML = `
+                        <div class="empty-state">
+                            <h3>💬 Start Conversation</h3>
+                            <p>No messages yet. Send the first message!</p>
+                        </div>
+                    `;
+            return;
+          }
+
+          messagesContainer.innerHTML = messages
+            .map((msg) => {
+              const isOwn = msg.isOwn || msg.senderId === this.currentUserId;
+              const initials = isOwn
+                ? "You"
+                : this.getInitials(this.currentRecipient?.name || "User");
+              const time = this.formatTime(msg.createdAt);
+
+              this.log(
+                `🔍 Rendering message - isOwn: ${isOwn}, senderId: ${msg.senderId}, currentUserId: ${this.currentUserId}`,
+                "info"
+              );
+
+              return `
+                        <div class="message ${isOwn ? "own" : ""}">
+                            <div class="message-avatar">${
+                              isOwn ? "👤" : "👥"
+                            }</div>
+                            <div class="message-content">
+                                <div class="message-bubble">
+                                    <p class="message-text">${this.escapeHtml(
+                                      msg.message
+                                    )}</p>
+                                    ${
+                                      msg.fileUrl
+                                        ? `
+                                        <div class="message-file">
+                                            <span>📎</span>
+                                            <a href="${
+                                              msg.fileUrl
+                                            }" target="_blank" style="color: inherit; text-decoration: none;">
+                                                ${this.extractFileNameFromUrl(
+                                                  msg.fileUrl
+                                                )}
+                                            </a>
+                                        </div>
+                                    `
+                                        : ""
+                                    }
+                                </div>
+                                <div class="message-meta">${time}</div>
+                            </div>
+                        </div>
+                    `;
+            })
+            .join("");
+
+          // Scroll to bottom
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          this.log(`🔍 Finished rendering ${messages.length} messages`, "info");
+        }
+
+        handleFileSelect(event) {
+          const file = event.target.files[0];
+          if (!file) {
+            this.selectedFile = null;
+            this.clearFilePreview();
+            return;
+          }
+
+          // Basic file validation
+          const maxSize = 10 * 1024 * 1024; // 10MB
+          if (file.size > maxSize) {
+            this.showNotification("File size must be less than 10MB", "error");
+            event.target.value = "";
+            return;
+          }
+
+          this.selectedFile = {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url: `/uploads/${file.name}`, // Simulated upload URL
+          };
+
+          this.showFilePreview();
+          this.log(
+            `📎 File selected: ${file.name} (${this.formatFileSize(
+              file.size
+            )})`,
+            "info"
+          );
+        }
+
+        showFilePreview() {
+          if (!this.selectedFile) return;
+
+          const filePreview = document.getElementById("filePreview");
+          filePreview.innerHTML = `
+                    <div class="file-preview">
+                        <span>📎 ${
+                          this.selectedFile.name
+                        } (${this.formatFileSize(
+            this.selectedFile.size
+          )})</span>
+                        <button class="remove-file" onclick="chatClient.clearFilePreview()">&times;</button>
+                    </div>
+                `;
+        }
+
+        clearFilePreview() {
+          this.selectedFile = null;
+          document.getElementById("filePreview").innerHTML = "";
+          document.getElementById("fileInput").value = "";
+        }
+
+        handleMessageKeydown(event) {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            this.sendChatMessage();
+          }
+        }
+
+        sendChatMessage() {
+          const messageInput = document.getElementById("messageInput");
+          const messageText = messageInput.value.trim();
+
+          if (!messageText && !this.selectedFile) {
+            this.showNotification(
+              "Please enter a message or select a file",
+              "warning"
+            );
+            return;
+          }
+
+          if (!this.currentChatroom) {
+            this.showNotification("Please select a chatroom first", "warning");
+            return;
+          }
+
+          // Construct WebSocket message
+          const chatMessage = {
+            type: "chat.send",
+            payload: {
+              message: messageText,
+              chatroomId: this.currentChatroom,
+              fileUrl: this.selectedFile ? this.selectedFile.url : undefined,
+            },
+          };
+
+          // Send via WebSocket
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(chatMessage));
+            this.log(`📤 Chat message sent to ${this.currentChatroom}`, "sent");
+
+            // Add to local messages for immediate display (optimistic UI)
+            const messageData = {
+              message: messageText,
+              fileUrl: this.selectedFile ? this.selectedFile.url : undefined,
+              createdAt: new Date().toISOString(),
+              senderId: this.currentUserId,
+              isOwn: true,
+            };
+            this.addMessageToDisplay(messageData);
+
+            // Update the chatroom list with the last message
+            this.updateChatroomWithLastMessage(
+              this.currentChatroom,
+              messageData
+            );
+
+            // Clear input
+            messageInput.value = "";
+            this.clearFilePreview();
+          } else {
+            this.showNotification("WebSocket not connected", "error");
+          }
+        }
+
+        addMessageToDisplay(messageData, chatroomId = null) {
+          const targetChatroom = chatroomId || this.currentChatroom;
+          this.log(
+            `🔍 addMessageToDisplay called with targetChatroom: ${targetChatroom}, currentChatroom: ${this.currentChatroom}`,
+            "info"
+          );
+          this.log(
+            `🔍 messageData: ${JSON.stringify(messageData, null, 2)}`,
+            "info"
+          );
+
+          if (!targetChatroom) {
+            this.log(`⚠️ No target chatroom, returning early`, "warning");
+            return;
+          }
+
+          // Initialize messages array if not exists
+          if (!this.messages[targetChatroom]) {
+            this.messages[targetChatroom] = [];
+            this.log(
+              `🔍 Initialized messages array for chatroom: ${targetChatroom}`,
+              "info"
+            );
+          }
+
+          // Add message to array
+          this.messages[targetChatroom].push(messageData);
+          this.log(
+            `🔍 Added message to chatroom ${targetChatroom}, now has ${this.messages[targetChatroom].length} messages`,
+            "info"
+          );
+
+          // Update the chatroom list with the last message
+          this.updateChatroomWithLastMessage(targetChatroom, messageData);
+
+          // Update display if this is the current chatroom
+          if (targetChatroom === this.currentChatroom) {
+            this.log(
+              `🔍 Displaying messages for current chatroom: ${targetChatroom}`,
+              "info"
+            );
+            this.displayMessages(targetChatroom);
+          } else {
+            this.log(
+              `🔍 Not displaying messages, targetChatroom (${targetChatroom}) !== currentChatroom (${this.currentChatroom})`,
+              "info"
+            );
+          }
+        }
+
+        displayPendingMessage(chatroomId) {
+          // Check if there's a pending message for this chatroom
+          if (this.pendingMessages && this.pendingMessages[chatroomId]) {
+            const messageData = this.pendingMessages[chatroomId];
+            this.log(
+              `🔍 Displaying pending message for chatroom ${chatroomId}`,
+              "info"
+            );
+            this.log(
+              `🔍 Pending message data: ${JSON.stringify(messageData)}`,
+              "info"
+            );
+
+            // Add the pending message to the messages array for this chatroom
+            if (!this.messages[chatroomId]) {
+              this.messages[chatroomId] = [];
+            }
+
+            // Check if the message is already in the array to avoid duplicates
+            const messageExists = this.messages[chatroomId].some(
+              (msg) =>
+                msg.message === messageData.message &&
+                msg.senderId === messageData.senderId &&
+                msg.createdAt === messageData.createdAt
+            );
+
+            if (!messageExists) {
+              this.messages[chatroomId].push(messageData);
+              this.log(
+                `✅ Added pending message to chatroom ${chatroomId}`,
+                "success"
+              );
+
+              // Update the chatroom list with the last message
+              this.updateChatroomWithLastMessage(chatroomId, messageData);
+            } else {
+              this.log(
+                `⚠️ Pending message already exists in chatroom ${chatroomId}`,
+                "warning"
+              );
+            }
+
+            // Display the messages
+            this.displayMessages(chatroomId);
+
+            // Clean up the pending message
+            delete this.pendingMessages[chatroomId];
+          } else {
+            this.log(
+              `🔍 No pending message found for chatroom ${chatroomId}`,
+              "info"
+            );
+          }
+        }
+
+        handleTyping() {
+          if (!this.currentChatroom) return;
+
+          this.sendTypingIndicator(true);
+          clearTimeout(this.typingTimeout);
+          this.typingTimeout = setTimeout(
+            () => this.sendTypingIndicator(false),
+            3000
+          );
+        }
+
+        stopTyping() {
+          if (!this.currentChatroom) return;
+          this.sendTypingIndicator(false);
+        }
+
+        sendTypingIndicator(isTyping) {
+          if (
+            !this.ws ||
+            this.ws.readyState !== WebSocket.OPEN ||
+            !this.currentChatroom
+          )
+            return;
+
+          const typingMessage = {
+            type: "chat.typing",
+            payload: {
+              chatroomId: this.currentChatroom,
+              isTyping: isTyping,
+            },
+          };
+
+          this.ws.send(JSON.stringify(typingMessage));
+        }
+
+        // Utility methods
+        getInitials(name) {
+          if (!name) return "?";
+          return name
+            .split(" ")
+            .map((word) => word[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+        }
+
+        formatTime(dateString) {
+          const date = new Date(dateString);
+          const now = new Date();
+          const diff = now - date;
+          const minutes = Math.floor(diff / 60000);
+          const hours = Math.floor(diff / 3600000);
+          const days = Math.floor(diff / 86400000);
+
+          if (minutes < 1) return "Just now";
+          if (minutes < 60) return `${minutes}m ago`;
+          if (hours < 24) return `${hours}h ago`;
+          if (days < 7) return `${days}d ago`;
+          return date.toLocaleDateString();
+        }
+
+        formatFileSize(bytes) {
+          if (bytes === 0) return "0 Bytes";
+          const k = 1024;
+          const sizes = ["Bytes", "KB", "MB", "GB"];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return (
+            parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+          );
+        }
+
+        escapeHtml(text) {
+          const div = document.createElement("div");
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
+        extractFileNameFromUrl(url) {
+          try {
+            return url.split("/").pop() || "file";
+          } catch {
+            return "file";
+          }
+        }
+      }
+
+      // Global chatClient variable
+      let chatClient = null;
+
+      // Global function wrappers for HTML event handlers
+      function sendChatMessage() {
+        console.log("🔧 sendChatMessage called");
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.sendChatMessage();
+      }
+      function selectChatroom(chatroomId, recipientId, recipientName) {
+        console.log("🔧 selectChatroom called");
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.selectChatroom(
+          chatroomId,
+          recipientId,
+          recipientName
+        );
+      }
+      function handleFileSelect(event) {
+        console.log("🔧 handleFileSelect called");
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.handleFileSelect(event);
+      }
+      function handleMessageKeydown(event) {
+        console.log("🔧 handleMessageKeydown called");
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.handleMessageKeydown(event);
+      }
+      function handleTyping() {
+        console.log("🔧 handleTyping called");
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.handleTyping();
+      }
+      function stopTyping() {
+        console.log("🔧 stopTyping called");
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.stopTyping();
+      }
+      function startNewChat() {
+        console.log("🔧 startNewChat called");
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.startNewChat();
+      }
+      function connect() {
+        console.log("🔧 connect called, chatClient exists:", !!chatClient);
+        if (!chatClient) {
+          console.error("❌ chatClient is not initialized!");
+          return;
+        }
+        return chatClient.connect();
+      }
+      function loadTemplate(name) {
+        if (!chatClient) return;
+        return chatClient.loadTemplate(name);
+      }
+      function formatJson() {
+        if (!chatClient) return;
+        return chatClient.formatJson();
+      }
+      function clearLog() {
+        if (!chatClient) return;
+        return chatClient.clearLog();
+      }
+      function exportLog() {
+        if (!chatClient) return;
+        return chatClient.exportLog();
+      }
+      function toggleAutoScroll() {
+        if (!chatClient) return;
+        return chatClient.toggleAutoScroll();
+      }
+      function toggleAutoHeartbeat() {
+        if (!chatClient) return;
+        return chatClient.toggleAutoHeartbeat();
+      }
+      function subscribeToProviderTopics() {
+        if (!chatClient) return;
+        return chatClient.subscribeToProviderTopics();
+      }
+      function toggleNotificationPanel() {
+        if (!chatClient) return;
+        return chatClient.toggleNotificationPanel();
+      }
+      function loadNotificationsFromDatabase() {
+        if (!chatClient) return;
+        return chatClient.loadNotificationsFromDatabase();
+      }
+      function simulateBookingNotification() {
+        if (!chatClient) return;
+        return chatClient.simulateBookingNotification();
+      }
+      function openChatroom(chatroomId) {
+        if (!chatClient) return;
+        return chatClient.openChatroom(chatroomId);
+      }
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("🔄 DOM loaded, creating ChatWebSocketClient instance...");
+
+        try {
+          // Initialize chatClient after DOM is ready
+          chatClient = new ChatWebSocketClient();
+          window.chatClient = chatClient; // Also set on window for debugging
+          console.log("✅ ChatWebSocketClient instance created successfully");
+
+          chatClient.log("🚀 SuperCare Chat Client initialized", "info");
+          chatClient.log("💡 Tip: Use Enter to send messages quickly", "info");
+          chatClient.log(
+            "📱 Feature: Real-time chat with file sharing",
+            "info"
+          );
+          chatClient.log(
+            "✍️ Feature: Typing indicators and read receipts",
+            "info"
+          );
+          chatClient.log(
+            "🔔 Feature: Live notifications for new messages",
+            "info"
+          );
+
+          // Debug: Check if all required elements exist
+          const requiredElements = [
+            "url",
+            "token",
+            "connectBtn",
+            "newChatPanel",
+            "chatroomsList",
+            "messagesContainer",
+            "chatInput",
+          ];
+          requiredElements.forEach((id) => {
+            const element = document.getElementById(id);
+            if (!element) {
+              console.error(`⚠️ Missing required element: ${id}`);
+            } else {
+              console.log(`✅ Found element: ${id}`);
+            }
+          });
+
+          // Ensure newChatPanel visibility is properly set on load
+          setTimeout(() => {
+            const newChatPanel = document.getElementById("newChatPanel");
+            if (newChatPanel && newChatPanel.style.display === "none") {
+              console.log("🔧 Ensuring newChatPanel visibility on page load");
+            }
+          }, 100);
+        } catch (error) {
+          console.error("❌ Failed to initialize ChatWebSocketClient:", error);
+        }
+      });
+    </script>
+  </body>
+</html>

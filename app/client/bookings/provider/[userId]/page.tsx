@@ -1,14 +1,15 @@
 // app/client/provider/[userId]/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import AvailabilityCalendar from '@/components/availability-calender';
+import ProviderProfileHeader from '@/components/provider-profile-header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { ProviderService } from '@/services/providerService';
 import { BaseApiResponse, ProviderProfileDetails, ProviderWeeklyAvailabilityDay } from '@/types/api';
-import ProviderProfileHeader from '@/components/provider-profile-header';
-import AvailabilityCalendar from '@/components/availability-calender';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { MessageCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 // Define the type for page props if using App Router with params
 // If using pages router, access via `useRouter().query.userId`
@@ -18,7 +19,6 @@ interface ProviderProfilePageProps {
 
 export default function ProviderProfilePage({ params }: ProviderProfilePageProps) {
     const router = useRouter();
-    const { userId } = params;
     const [profile, setProfile] = useState<ProviderProfileDetails | null>(null);
     const [availability, setAvailability] = useState<ProviderWeeklyAvailabilityDay[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -28,6 +28,10 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
         const fetchData = async () => {
             setLoading(true);
             setError(null);
+
+            // Await params before using its properties
+            const { userId } = await params;
+
             try {
                 const [profileRes, availabilityRes] = await Promise.all([
                     ProviderService.getProviderProfile(userId),
@@ -57,14 +61,12 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
             }
         };
 
-        if (userId) { // Ensure userId is available
-            fetchData();
-        }
-    }, [userId]);
+        fetchData();
+    }, []);
 
     const handleBookNow = () => {
         if (profile) {
-            router.push(`/client/bookings/book/${profile.userId}`);
+            router.push(`/client/bookings/book/${profile.providerId}`);
         }
     };
 
@@ -81,7 +83,11 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
     return (
         <div className="container mx-auto p-4">
             <ProviderProfileHeader profile={profile} />
-            <div className="mb-6 flex justify-end">
+            <div className="mb-6 flex justify-end space-x-2">
+                <Button onClick={() => router.push('/client/chats')} variant="outline" className="flex items-center">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Chat
+                </Button>
                 <Button onClick={handleBookNow} className="bg-accent text-accent-foreground hover:bg-accent/90">
                     Book Now
                 </Button>

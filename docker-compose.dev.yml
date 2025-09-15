@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  # Development Next.js Application
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-https://careappapi.intellexio.com/api/v1}
+      - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-ws://localhost:5221/ws}
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - redis-dev
+
+  # Redis for development
+  redis-dev:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    restart: unless-stopped
+    networks:
+      - app-network
+    command: redis-server --appendonly yes
+
+volumes:
+  redis_dev_data:
+
+networks:
+  app-network:
+    driver: bridge
