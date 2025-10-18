@@ -105,7 +105,8 @@ export class BookingService {
   static async getAllBookings(
     userId: string,
     pageNumber: number = 1,
-    pageSize: number = 10
+    pageSize: number = 10,
+    searchTerm: string | null = null
   ): Promise<BaseApiResponse<any[]>> {
     try {
       // Ensure userId is passed as a query parameter
