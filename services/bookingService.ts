@@ -1,4 +1,5 @@
 // src/services/bookingService.ts
+import { stat } from "fs";
 import apiClient from "./apiService";
 import {
   BaseApiResponse,
@@ -111,21 +112,21 @@ export class BookingService {
   ): Promise<BaseApiResponse<any[]>> {
     try {
       // Build query parameters
-      const params: any = { 
-        userId, 
-        PageNumber: pageNumber, 
-        PageSize: pageSize 
+      const params: any = {
+        userId,
+        PageNumber: pageNumber,
+        PageSize: pageSize,
       };
-      
+
       // Add optional parameters if provided
       if (searchTerm) {
         params.SearchTerm = searchTerm;
       }
-      
-      if (bookingStatus && bookingStatus !== 'all') {
+
+      if (bookingStatus && bookingStatus !== "all") {
         params.BookingStatus = bookingStatus;
       }
-      
+
       const response = await apiClient.get<BaseApiResponse<any[]>>(
         "/bookings/all",
         { params }
@@ -158,6 +159,28 @@ export class BookingService {
       reason,
       notifyOtherParty: true,
       forceCancel: false,
+    });
+  }
+
+  static async acceptBooking(
+    bookingId: string,
+    status: string,
+    notes: string
+  ): Promise<BaseApiResponse<any>> {
+    return await apiClient.put(`/bookings/${bookingId}/status`, {
+      status,
+      notes,
+    });
+  }
+
+  static async rejectBooking(
+    bookingId: string,
+    status: string,
+    notes: string
+  ): Promise<BaseApiResponse<any>> {
+    return await apiClient.put(`/bookings/${bookingId}/status`, {
+      status,
+      notes,
     });
   }
 }

@@ -42,6 +42,9 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("all")
 
+  // Loading states for accept/reject actions
+  const [loadingStates, setLoadingStates] = useState<{ [key: string]: { accepting: boolean, rejecting: boolean } }>({})
+
   useEffect(() => {
     if (isAuthenticated && user?.userId) {
       fetchBookings()
@@ -108,6 +111,62 @@ export default function BookingsPage() {
     }
   }
 
+  const handleAcceptBooking = async (bookingId: string) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [bookingId]: { ...prev[bookingId], accepting: true }
+    }))
+
+    try {
+      const response = await BookingService.acceptBooking(bookingId, 'Accepted', 'Booking accepted by provider')
+
+      if (response.success) {
+        // Update the pending bookings list to remove the accepted booking
+        setPendingBookings(prev => prev.filter(b => b.bookingId !== bookingId))
+        // Optionally refresh the main bookings list
+        fetchBookings()
+        console.log('Booking accepted successfully')
+      } else {
+        console.error('Failed to accept booking:', response.message)
+      }
+    } catch (error) {
+      console.error('Error accepting booking:', error)
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        [bookingId]: { ...prev[bookingId], accepting: false }
+      }))
+    }
+  }
+
+  const handleRejectBooking = async (bookingId: string) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [bookingId]: { ...prev[bookingId], rejecting: true }
+    }))
+
+    try {
+      const response = await BookingService.rejectBooking(bookingId, 'Rejected', 'Booking rejected by provider')
+
+      if (response.success) {
+        // Update the pending bookings list to remove the rejected booking
+        setPendingBookings(prev => prev.filter(b => b.bookingId !== bookingId))
+        // Optionally refresh the main bookings list
+        fetchBookings()
+        console.log('Booking rejected successfully')
+      } else {
+        console.error('Failed to reject booking:', response.message)
+      }
+    } catch (error) {
+      console.error('Error rejecting booking:', error)
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        [bookingId]: { ...prev[bookingId], rejecting: false }
+      }))
+    }
+  }
+
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
   }
@@ -119,6 +178,7 @@ export default function BookingsPage() {
 
   const handleRefresh = () => {
     fetchBookings()
+    fetchPendingBookings()
   }
 
   // Filter bookings based on search and status
@@ -211,11 +271,35 @@ export default function BookingsPage() {
                     </p>
                   </div>
                   <div className="flex flex-col space-y-2 ml-4">
-                    <button className="px-3 py-1.5 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-colors shadow-sm">
-                      Accept
+                    <button
+                      className={`px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors shadow-sm ${loadingStates[booking.bookingId]?.accepting
+                          ? 'bg-green-400 cursor-not-allowed'
+                          : 'bg-green-500 hover:bg-green-600'
+                        }`}
+                      onClick={() => handleAcceptBooking(booking.bookingId)}
+                      disabled={loadingStates[booking.bookingId]?.accepting}
+                    >
+                      {loadingStates[booking.bookingId]?.accepting ? (
+                        <span className="flex items-center">
+                          <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></span>
+                          Accepting...
+                        </span>
+                      ) : 'Accept'}
                     </button>
-                    <button className="px-3 py-1.5 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition-colors shadow-sm">
-                      Reject
+                    <button
+                      className={`px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors shadow-sm ${loadingStates[booking.bookingId]?.rejecting
+                          ? 'bg-red-400 cursor-not-allowed'
+                          : 'bg-red-500 hover:bg-red-600'
+                        }`}
+                      onClick={() => handleRejectBooking(booking.bookingId)}
+                      disabled={loadingStates[booking.bookingId]?.rejecting}
+                    >
+                      {loadingStates[booking.bookingId]?.rejecting ? (
+                        <span className="flex items-center">
+                          <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></span>
+                          Rejecting...
+                        </span>
+                      ) : 'Reject'}
                     </button>
                   </div>
                 </div>
@@ -233,8 +317,8 @@ export default function BookingsPage() {
                 <button
                   className="text-[#00C2CB] hover:text-[#00a0a8] font-medium text-sm"
                   onClick={() => {
-                    setActiveTab('pending')
-                    setStatusFilter('pending')
+                    setActiveTab('requested')
+                    setStatusFilter('requested')
                   }}
                 >
                   View all requests ({pendingBookings.length})
