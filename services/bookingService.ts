@@ -106,11 +106,26 @@ export class BookingService {
     userId: string,
     pageNumber: number = 1,
     pageSize: number = 10,
-    searchTerm: string | null = null
+    searchTerm: string | null = null,
+    bookingStatus: string | null = null
   ): Promise<BaseApiResponse<any[]>> {
     try {
-      // Ensure userId is passed as a query parameter
-      const params = { userId, pageNumber, pageSize };
+      // Build query parameters
+      const params: any = { 
+        userId, 
+        PageNumber: pageNumber, 
+        PageSize: pageSize 
+      };
+      
+      // Add optional parameters if provided
+      if (searchTerm) {
+        params.SearchTerm = searchTerm;
+      }
+      
+      if (bookingStatus && bookingStatus !== 'all') {
+        params.BookingStatus = bookingStatus;
+      }
+      
       const response = await apiClient.get<BaseApiResponse<any[]>>(
         "/bookings/all",
         { params }

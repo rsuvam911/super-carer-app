@@ -40,7 +40,7 @@ export interface Booking {
   bookingId: string;
   duration: string;
   description: string;
-  status: "Pending" | "Confirmed" | "Completed" | "Cancelled";
+  status: "Requested" | "Accepted" | "Completed" | "Cancelled";
   serviceType: string;
   totalAmount: number;
   clients: BookingClient;
