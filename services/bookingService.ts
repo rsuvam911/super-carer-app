@@ -167,7 +167,7 @@ export class BookingService {
     bookingId: string,
     status: string,
     notes: string
-  ): Promise<BaseApiResponse<any>> {
+  ): Promise<any> {
     return await apiClient.put(`/bookings/${bookingId}/status`, {
       status,
       notes,
@@ -178,7 +178,7 @@ export class BookingService {
     bookingId: string,
     status: string,
     notes: string
-  ): Promise<BaseApiResponse<any>> {
+  ): Promise<any> {
     return await apiClient.put(`/bookings/${bookingId}/status`, {
       status,
       notes,

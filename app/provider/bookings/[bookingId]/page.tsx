@@ -102,8 +102,8 @@ export default function BookingDetailsPage() {
   }, [isAuthenticated, bookingId])
 
   useEffect(() => {
-    // Initialize time tracker state for upcoming slots
-    if (booking) {
+    // Initialize time tracker state for upcoming slots only if booking is accepted
+    if (booking && booking.status.toLowerCase() === 'accepted') {
       const initialTrackerState: { [key: string]: { seconds: number; isRunning: boolean } } = {}
       booking.bookingSlots.forEach(slot => {
         if (slot.status.toLowerCase() === 'upcoming') {
@@ -231,6 +231,8 @@ export default function BookingDetailsPage() {
         return 'destructive'
       case 'upcoming':
         return 'default'
+      case 'rejected':
+        return 'destructive'
       default:
         return 'secondary'
     }
@@ -374,8 +376,8 @@ export default function BookingDetailsPage() {
                       <span>{slot.startTime} - {slot.endTime}</span>
                     </div>
 
-                    {/* Time Tracker - Only visible if status is 'upcoming' */}
-                    {slot.status.toLowerCase() === 'upcoming' && (
+                    {/* Time Tracker - Only visible if status is 'upcoming' and booking is 'accepted' */}
+                    {slot.status.toLowerCase() === 'upcoming' && booking.status.toLowerCase() === 'accepted' && (
                       <div className="mt-4 pt-4 border-t border-gray-100">
                         <div className="flex items-center justify-between">
                           <div className="text-lg font-mono font-bold">
@@ -413,6 +415,14 @@ export default function BookingDetailsPage() {
                             </Button>
                           </div>
                         </div>
+                      </div>
+                    )}
+                    {/* Message for non-accepted bookings */}
+                    {slot.status.toLowerCase() === 'upcoming' && booking.status.toLowerCase() !== 'accepted' && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-500 italic">
+                          Time tracking will be available once the booking is accepted.
+                        </p>
                       </div>
                     )}
                   </div>

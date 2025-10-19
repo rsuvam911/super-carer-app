@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { toast } from "sonner"
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -82,10 +83,12 @@ export default function BookingsPage() {
         }
       } else {
         setError(response.message || "Failed to fetch bookings")
+        toast.error(response.message || "Failed to fetch bookings")
       }
     } catch (err: any) {
       console.error("Error fetching bookings:", err)
       setError("Failed to load bookings. Please try again.")
+      toast.error("Failed to load bookings. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -108,6 +111,7 @@ export default function BookingsPage() {
       }
     } catch (err: any) {
       console.error("Error fetching pending bookings:", err)
+      toast.error("Failed to load pending bookings")
     }
   }
 
@@ -119,18 +123,23 @@ export default function BookingsPage() {
 
     try {
       const response = await BookingService.acceptBooking(bookingId, 'Accepted', 'Booking accepted by provider')
-
-      if (response.success) {
+      const apiResponse = response.data;
+      if (apiResponse.statusCode === 200 && apiResponse.success) {
         // Update the pending bookings list to remove the accepted booking
         setPendingBookings(prev => prev.filter(b => b.bookingId !== bookingId))
-        // Optionally refresh the main bookings list
-        fetchBookings()
-        console.log('Booking accepted successfully')
+        // Add a small delay to ensure UI updates properly
+        setTimeout(() => {
+          // Refresh the main bookings list
+          fetchBookings()
+        }, 500)
+        // Show success toast
+        toast.success("Booking accepted successfully")
       } else {
-        console.error('Failed to accept booking:', response.message)
+        toast.error(apiResponse.message || "Failed to accept booking")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accepting booking:', error)
+      toast.error(error.message || "Error accepting booking")
     } finally {
       setLoadingStates(prev => ({
         ...prev,
@@ -147,18 +156,26 @@ export default function BookingsPage() {
 
     try {
       const response = await BookingService.rejectBooking(bookingId, 'Rejected', 'Booking rejected by provider')
+      // Access the actual API response from the data property
+      const apiResponse = response.data;
 
-      if (response.success) {
+      if (apiResponse.statusCode === 200 && apiResponse.success) {
         // Update the pending bookings list to remove the rejected booking
         setPendingBookings(prev => prev.filter(b => b.bookingId !== bookingId))
-        // Optionally refresh the main bookings list
-        fetchBookings()
-        console.log('Booking rejected successfully')
+        // Add a small delay to ensure UI updates properly
+        setTimeout(() => {
+          // Refresh the main bookings list
+          fetchBookings()
+        }, 500)
+        // Show success toast
+        toast.success(apiResponse.message || "Booking rejected successfully")
       } else {
-        console.error('Failed to reject booking:', response.message)
+        console.error('Failed to reject booking:', apiResponse.statusCode)
+        toast.error(apiResponse.message || "Failed to reject booking")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rejecting booking:', error)
+      toast.error(error.message || "Error rejecting booking")
     } finally {
       setLoadingStates(prev => ({
         ...prev,
@@ -179,6 +196,7 @@ export default function BookingsPage() {
   const handleRefresh = () => {
     fetchBookings()
     fetchPendingBookings()
+    toast.info("Bookings refreshed")
   }
 
   // Filter bookings based on search and status
@@ -273,8 +291,8 @@ export default function BookingsPage() {
                   <div className="flex flex-col space-y-2 ml-4">
                     <button
                       className={`px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors shadow-sm ${loadingStates[booking.bookingId]?.accepting
-                          ? 'bg-green-400 cursor-not-allowed'
-                          : 'bg-green-500 hover:bg-green-600'
+                        ? 'bg-green-400 cursor-not-allowed'
+                        : 'bg-green-500 hover:bg-green-600'
                         }`}
                       onClick={() => handleAcceptBooking(booking.bookingId)}
                       disabled={loadingStates[booking.bookingId]?.accepting}
@@ -288,8 +306,8 @@ export default function BookingsPage() {
                     </button>
                     <button
                       className={`px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors shadow-sm ${loadingStates[booking.bookingId]?.rejecting
-                          ? 'bg-red-400 cursor-not-allowed'
-                          : 'bg-red-500 hover:bg-red-600'
+                        ? 'bg-red-400 cursor-not-allowed'
+                        : 'bg-red-500 hover:bg-red-600'
                         }`}
                       onClick={() => handleRejectBooking(booking.bookingId)}
                       disabled={loadingStates[booking.bookingId]?.rejecting}
