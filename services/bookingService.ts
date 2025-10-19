@@ -8,6 +8,7 @@ import {
   CreateBookingRequest,
   ClientBookingItem,
 } from "@/types/api"; // Adjust path
+import { AvailabilityTemplate } from "@/types/availability";
 
 export class BookingService {
   // Get monthly calendar (unavailable days/leaves) for a provider
@@ -182,6 +183,53 @@ export class BookingService {
       status,
       notes,
     });
+  }
+
+  static async getProviderAvailabilityTemplate(
+    providerId: string
+  ): Promise<BaseApiResponse<AvailabilityTemplate>> {
+    const response = await apiClient.get<BaseApiResponse<AvailabilityTemplate>>(
+      `/bookings/providers/${providerId}/availability-template`
+    );
+    return response.data;
+  }
+
+  static async bulkUpdateAvailabilities(
+    providerId: string,
+    data: {
+      availabilities: {
+        dayOfWeek: string;
+        isAvailable: boolean;
+        slots: {
+          startTime: string;
+          endTime: string;
+        }[];
+      }[];
+      bufferDuration: number;
+      providesRecurringBooking: boolean;
+      workingHoursPerDay: number;
+    }
+  ): Promise<BaseApiResponse<any>> {
+    try {
+      console.log(
+        "Full URL:",
+        apiClient.getUri() +
+          `/bookings/availabilities/${providerId}/bulk-update`
+      );
+
+      const response = await apiClient.post<BaseApiResponse<any>>(
+        `/bookings/availabilities/${providerId}/bulk-update`,
+        data
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Error performing bulk update of availabilities for provider ${providerId}:`,
+        error
+      );
+      throw error;
+    }
   }
 }
 
