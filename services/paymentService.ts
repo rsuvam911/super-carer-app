@@ -43,11 +43,14 @@ interface WalletBalance {
   currency: string;
 }
 
+export type SearchType = "all" | "client" | "invoice" | "service" | "amount";
+
 export const PaymentService = {
   getPaymentHistory: async (
     pageNumber: number = 1,
     pageSize: number = 10,
-    searchTerm?: string
+    searchTerm?: string,
+    searchType: SearchType = "all"
   ) => {
     try {
       const params: any = {
@@ -57,6 +60,7 @@ export const PaymentService = {
 
       if (searchTerm && searchTerm.trim()) {
         params.searchTerm = searchTerm.trim();
+        params.searchType = searchType;
       }
 
       const response = await apiClient.get<ApiResponse>(

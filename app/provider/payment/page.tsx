@@ -17,6 +17,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
+import { SearchType } from "@/services/paymentService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,13 +33,15 @@ import formatTimeTo12Hour from "@/utils/timeFormatter";
 
 export default function PaymentPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchType, setSearchType] = useState<SearchType>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
   const { data, isLoading, isError, error } = usePaymentHistory(
     currentPage,
     pageSize,
-    searchTerm
+    searchTerm,
+    searchType
   );
 
   React.useEffect(() => {
@@ -54,6 +57,28 @@ export default function PaymentPage() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  // Handle search type change
+  const handleSearchTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchType(e.target.value as SearchType);
+    setCurrentPage(1); // Reset to first page when changing search type
+  };
+
+  // Get placeholder text based on search type
+  const getSearchPlaceholder = () => {
+    switch (searchType) {
+      case "client":
+        return "Search by client name...";
+      case "invoice":
+        return "Search by invoice number...";
+      case "service":
+        return "Search by service type...";
+      case "amount":
+        return "Search by amount...";
+      default:
+        return "Search by client name, invoice, service, or amount...";
+    }
   };
 
   // Calculate summary statistics
@@ -116,9 +141,12 @@ export default function PaymentPage() {
         </div>
 
         {/* Search Skeleton */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Skeleton className="h-10 w-full sm:w-96" />
-          <Skeleton className="h-10 w-32" />
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 flex-1">
+            <Skeleton className="h-12 w-full sm:w-48" />
+            <Skeleton className="h-12 w-full sm:w-96" />
+          </div>
+          <Skeleton className="h-12 w-32" />
         </div>
 
         {/* Table Skeleton */}
@@ -316,24 +344,103 @@ export default function PaymentPage() {
       </div>
 
       {/* Enhanced Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          {/* Search Type Selector */}
+          <div className="min-w-[180px]">
+            <select
+              value={searchType}
+              onChange={handleSearchTypeChange}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm text-sm font-medium"
+            >
+              <option value="all">🔍 All Fields</option>
+              <option value="client">👤 Client Name</option>
+              <option value="invoice">📄 Invoice Number</option>
+              <option value="service">🏥 Service Type</option>
+              <option value="amount">💰 Amount</option>
+            </select>
           </div>
-          <input
-            type="text"
-            placeholder="Search by client name, invoice, or service..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
-          />
+
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder={getSearchPlaceholder()}
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
-        <Button variant="outline" className="px-6">
-          <Filter className="h-4 w-4 mr-2" />
-          More Filters
-        </Button>
+
+        <div className="flex gap-3">
+          <Button variant="outline" className="px-6">
+            <Filter className="h-4 w-4 mr-2" />
+            More Filters
+          </Button>
+        </div>
       </div>
+
+      {/* Search Results Info */}
+      {searchTerm && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-blue-600" />
+              <span className="text-sm text-blue-800">
+                Searching for <strong>"{searchTerm}"</strong> in{" "}
+                <strong>
+                  {searchType === "all"
+                    ? "all fields"
+                    : searchType === "client"
+                    ? "client names"
+                    : searchType === "invoice"
+                    ? "invoice numbers"
+                    : searchType === "service"
+                    ? "service types"
+                    : searchType === "amount"
+                    ? "amounts"
+                    : searchType}
+                </strong>
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchTerm("");
+                setSearchType("all");
+              }}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              Clear all
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Payments Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
