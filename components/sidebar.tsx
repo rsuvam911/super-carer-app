@@ -91,10 +91,10 @@ export default function Sidebar({ isOpen = true, onToggle }: SidebarProps) {
       roles: ["client", "provider"],
     },
     {
-      href: "/invoices",
-      label: "Invoices",
+      href: "/payments",
+      label: "Payments",
       icon: FileText,
-      roles: ["client", "provider"],
+      roles: ["client"],
     },
     {
       href: "/chats",
@@ -211,7 +211,7 @@ export default function Sidebar({ isOpen = true, onToggle }: SidebarProps) {
                     onClick={isMobile ? onToggle : undefined}
                     className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
                       active
-                        ? "bg-blue-50 text-teal-600 border-r-2 border-teal-600"
+                        ? "bg-teal-50 text-teal-600 border-r-2 border-teal-600"
                         : "text-gray-600 hover:bg-gray-50 hover:text-teal-900"
                     }`}
                     title={!isOpen && !isMobile ? label : undefined}
@@ -247,7 +247,7 @@ export default function Sidebar({ isOpen = true, onToggle }: SidebarProps) {
                       onClick={isMobile ? onToggle : undefined}
                       className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
                         active
-                          ? "bg-blue-50 text-blue-600 border-r-2 border-blue-600"
+                          ? "bg-teal-50 text-teal-600 border-r-2 border-teal-600"
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                       }`}
                       title={!isOpen && !isMobile ? label : undefined}

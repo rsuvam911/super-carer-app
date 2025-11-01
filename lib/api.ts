@@ -176,3 +176,10 @@ export {
   useSearchClients,
   useClientDetails,
 } from "@/hooks/useProviderClients";
+
+// Re-export payment history hooks for consistency
+export {
+  usePaymentHistory,
+  useSearchPaymentHistory,
+  usePaymentDetails,
+} from "@/hooks/usePaymentHistory";

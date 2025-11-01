@@ -255,6 +255,29 @@ export interface ProviderClient {
   profilePicture: string;
 }
 
+// --- Payment History Types ---
+export interface PaymentHistoryLocation {
+  streetAddress: string;
+  city: string;
+  state: string;
+  postalCode: string;
+}
+
+export interface PaymentHistoryItem {
+  userId: string;
+  clientName: string;
+  mobileNo: string;
+  emailId: string;
+  location: PaymentHistoryLocation;
+  profilePicture: string;
+  careCategory: string;
+  date: string;
+  totalPrice: string;
+  invoiceNo: string;
+  startTime: string;
+  endTime: string;
+}
+
 // --- Service Interfaces ---
 export interface IProviderService {
   getProviders(

@@ -1,390 +1,536 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import React, { useState, useMemo } from "react";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table"
-import { ChevronLeft, ChevronRight, CreditCard, Download, Filter, Search } from "lucide-react"
-import { useState } from "react"
-
-// Define types for our data
-interface Transaction {
-  id: string
-  date: string
-  client: string
-  amount: number
-  status: string
-  type: string
-}
-
-interface PaymentMethod {
-  id: string
-  type: string
-  last4: string
-  expiry: string
-  isDefault: boolean
-}
+  CreditCard,
+  Wallet,
+  Calendar,
+  Clock,
+  FileText,
+  Package,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Filter,
+  TrendingUp,
+  DollarSign,
+} from "lucide-react";
+import { usePaymentHistory } from "@/hooks/usePaymentHistory";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "sonner";
+import formatTimeTo12Hour from "@/utils/timeFormatter";
 
 export default function PaymentPage() {
-  const [activeTab, setActiveTab] = useState("transactions")
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
 
-  // Mock transaction data
-  const transactions = [
-    {
-      id: "tx1",
-      date: "Apr 3, 2025",
-      client: "Albert Flores",
-      amount: 67.0,
-      status: "Completed",
-      type: "Payment",
-    },
-    {
-      id: "tx2",
-      date: "Apr 2, 2025",
-      client: "Cameron Williamson",
-      amount: 120.0,
-      status: "Pending",
-      type: "Payment",
-    },
-    {
-      id: "tx3",
-      date: "Apr 1, 2025",
-      client: "Eleanor Pena",
-      amount: 85.5,
-      status: "Completed",
-      type: "Payment",
-    },
-    {
-      id: "tx4",
-      date: "Mar 30, 2025",
-      client: "Albert Flores",
-      amount: 67.0,
-      status: "Completed",
-      type: "Payment",
-    },
-    {
-      id: "tx5",
-      date: "Mar 28, 2025",
-      client: "Cameron Williamson",
-      amount: 120.0,
-      status: "Completed",
-      type: "Payment",
-    },
-    {
-      id: "tx6",
-      date: "Mar 25, 2025",
-      client: "Eleanor Pena",
-      amount: 85.5,
-      status: "Completed",
-      type: "Payment",
-    },
-  ]
+  const { data, isLoading, isError, error } = usePaymentHistory(
+    currentPage,
+    pageSize,
+    searchTerm
+  );
 
-  // Mock payment methods
-  const paymentMethods = [
-    {
-      id: "pm1",
-      type: "Mastercard",
-      last4: "4242",
-      expiry: "04/2026",
-      isDefault: true,
-    },
-    {
-      id: "pm2",
-      type: "Visa",
-      last4: "1234",
-      expiry: "12/2025",
-      isDefault: false,
-    },
-  ]
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "transactions":
-        return <TransactionsTab transactions={transactions} />
-      case "payment-methods":
-        return <PaymentMethodsTab paymentMethods={paymentMethods} />
-      default:
-        return <TransactionsTab transactions={transactions} />
+  React.useEffect(() => {
+    if (isError && error) {
+      toast.error("Failed to load payment history", {
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
+      });
     }
-  }
+  }, [isError, error]);
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Payment</h1>
-        <p className="text-gray-500">Manage your payments and transactions</p>
-      </div>
+  // Handle search input with debounce
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="flex border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab("transactions")}
-            className={`px-6 py-4 text-sm font-medium ${
-              activeTab === "transactions"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Transactions
-          </button>
+  // Calculate summary statistics
+  const summaryStats = useMemo(() => {
+    if (!data?.payload?.payments) return null;
 
-          <button
-            onClick={() => setActiveTab("payment-methods")}
-            className={`px-6 py-4 text-sm font-medium ${
-              activeTab === "payment-methods"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Payment Methods
-          </button>
+    const payments = data.payload.payments;
+    const totalAmount = payments.reduce(
+      (sum, payment) => sum + parseFloat(payment.totalPrice),
+      0
+    );
+    const avgAmount = payments.length > 0 ? totalAmount / payments.length : 0;
+
+    return {
+      totalTransactions: data.payload.totalCount || payments.length,
+      totalAmount,
+      avgAmount,
+      thisMonth: payments.filter((p) => {
+        const paymentDate = new Date(p.date);
+        const now = new Date();
+        return (
+          paymentDate.getMonth() === now.getMonth() &&
+          paymentDate.getFullYear() === now.getFullYear()
+        );
+      }).length,
+    };
+  }, [data]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-80 mt-2" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-24" />
+          </div>
         </div>
 
-        <div className="p-6">{renderTabContent()}</div>
-      </div>
-    </div>
-  )
-}
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
+                <Skeleton className="h-12 w-12 rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
 
-function TransactionsTab({ transactions }: { transactions: Transaction[] }) {
+        {/* Search Skeleton */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Skeleton className="h-10 w-full sm:w-96" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Date & Time</TableHead>
+                  <TableHead>Invoice</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div>
+                          <Skeleton className="h-4 w-32 mb-1" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-6 w-16 ml-auto rounded-full" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Error loading payment history</p>
+          <p className="text-gray-500 text-sm">
+            {error instanceof Error
+              ? error.message
+              : "An unknown error occurred"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Package className="h-12 w-12 mx-auto text-gray-400" />
+          <p className="mt-4 text-gray-600">No payment history found</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { payments, walletBalance, totalPages, hasNextPage, hasPreviousPage } =
+    data.payload;
+
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <div className="relative w-full sm:w-96">
+    <div className="space-y-8">
+      {/* Enhanced Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            Payment History
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Track your earnings and transaction history
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Filter
+          </Button>
+        </div>
+      </div>
+
+      {/* Enhanced Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Wallet Balance */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium">
+                Wallet Balance
+              </p>
+              <p className="text-2xl font-bold">
+                £{walletBalance.amount.toFixed(2)}
+              </p>
+              <div className="flex items-center mt-2">
+                <span className="h-2 w-2 rounded-full bg-green-400 mr-2"></span>
+                <span className="text-xs text-blue-100">Available</span>
+              </div>
+            </div>
+            <div className="p-3 bg-blue-400 bg-opacity-30 rounded-lg">
+              <Wallet className="h-8 w-8" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Transactions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">
+                Total Transactions
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {summaryStats?.totalTransactions || 0}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">All time</p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-lg">
+              <FileText className="h-8 w-8 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Earnings */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">
+                Total Earnings
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                £{summaryStats?.totalAmount.toFixed(2) || "0.00"}
+              </p>
+              <p className="text-xs text-green-600 mt-1 flex items-center">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                +12% this month
+              </p>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <DollarSign className="h-8 w-8 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Average Transaction */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">
+                Avg Transaction
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                £{summaryStats?.avgAmount.toFixed(2) || "0.00"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Per transaction</p>
+            </div>
+            <div className="p-3 bg-orange-100 rounded-lg">
+              <TrendingUp className="h-8 w-8 text-orange-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
-            placeholder="Search transactions..."
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+            placeholder="Search by client name, invoice, or service..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
           />
         </div>
-
-        <div className="flex space-x-2">
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </button>
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </button>
-        </div>
+        <Button variant="outline" className="px-6">
+          <Filter className="h-4 w-4 mr-2" />
+          More Filters
+        </Button>
       </div>
 
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Type</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>{transaction.date}</TableCell>
-                <TableCell>{transaction.client}</TableCell>
-                <TableCell>${transaction.amount.toFixed(2)}</TableCell>
-                <TableCell>
-                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${transaction.status === "Completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                    <span className={`mr-1 w-1.5 h-1.5 rounded-full ${transaction.status === "Completed" ? "bg-green-700" : "bg-yellow-700"}`}></span>
-                    {transaction.status}
+      {/* Enhanced Payments Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {payments.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
+                <Package className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm
+                  ? "No matching transactions"
+                  : "No transactions yet"}
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm
+                  ? "Try adjusting your search terms"
+                  : "When you complete services, transactions will appear here"}
+              </p>
+              {searchTerm && (
+                <Button
+                  variant="outline"
+                  onClick={() => setSearchTerm("")}
+                  className="mt-2"
+                >
+                  Clear search
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Recent Transactions
+                </h3>
+                <span className="bg-teal-50 text-teal-700 text-sm font-medium px-3 py-1 rounded-full">
+                  {payments.length} of {summaryStats?.totalTransactions || 0}
+                </span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-semibold">Client</TableHead>
+                    <TableHead className="font-semibold">Service</TableHead>
+                    <TableHead className="font-semibold">Date & Time</TableHead>
+                    <TableHead className="font-semibold">Invoice</TableHead>
+                    <TableHead className="text-right font-semibold">
+                      Amount
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((payment, index) => (
+                    <TableRow
+                      key={payment.invoiceId}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <TableCell className="py-4">
+                        <div className="flex items-center space-x-4">
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 overflow-hidden ring-2 ring-white shadow-sm">
+                              <img
+                                src={payment.profilePicture}
+                                alt={payment.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src =
+                                    "/placeholder.svg?height=48&width=48";
+                                }}
+                              />
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {payment.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              ID: {payment.bookingId.substring(0, 8)}...
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center">
+                          <div className="p-2 bg-blue-50 rounded-lg mr-3">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="font-medium text-gray-900">
+                            {payment.careCategory}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm font-medium text-gray-900">
+                            <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                            {formatDate(payment.date)}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                            {formatTimeTo12Hour(payment.startTime)} -{" "}
+                            {formatTimeTo12Hour(payment.endTime)}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center">
+                          <FileText className="h-4 w-4 mr-2 text-gray-400" />
+                          <span className="font-mono text-sm text-gray-900">
+                            {payment.invoiceNo}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right py-4">
+                        <div className="flex flex-col items-end">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                            £{parseFloat(payment.totalPrice).toFixed(2)}
+                          </span>
+                          <span className="text-xs text-gray-500 mt-1">
+                            {payment.currency}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Enhanced Pagination */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Showing page {currentPage} of {totalPages}
                   </div>
-                </TableCell>
-                <TableCell>{transaction.type}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                      }
+                      disabled={!hasPreviousPage}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
 
-      <div className="mt-6 flex justify-between items-center">
-        <div className="text-sm text-gray-500">
-          Showing {transactions.length} of {transactions.length} transactions
-        </div>
+                    <div className="flex items-center space-x-1">
+                      {Array.from(
+                        { length: Math.min(5, totalPages) },
+                        (_, i) => {
+                          const pageNum = i + 1;
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={
+                                currentPage === pageNum ? "default" : "outline"
+                              }
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        }
+                      )}
+                    </div>
 
-        <div className="flex items-center space-x-1">
-          <Button variant="outline" size="icon" className="w-8 h-8 rounded-md">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="default" size="icon" className="w-8 h-8 rounded-md bg-[#00C2CB]">
-            1
-          </Button>
-          <Button variant="outline" size="icon" className="w-8 h-8 rounded-md">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                      }
+                      disabled={!hasNextPage}
+                      className="flex items-center gap-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
-  )
+  );
 }
-
-function PaymentMethodsTab({ paymentMethods }: { paymentMethods: PaymentMethod[] }) {
-  const [showAddCard, setShowAddCard] = useState(false)
-
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Your Payment Methods</h3>
-
-      <div className="space-y-4 mb-6">
-        {paymentMethods.map((method) => (
-          <div key={method.id} className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-12 h-8 bg-blue-100 rounded flex items-center justify-center mr-3">
-                  {method.type === "Mastercard" ? (
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="24" height="24" rx="4" fill="#1A56DB" />
-                      <path
-                        d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18Z"
-                        fill="#FF5F00"
-                      />
-                    </svg>
-                  ) : (
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="24" height="24" rx="4" fill="#2D3A9E" />
-                      <path d="M9 16H15V8H9V16Z" fill="#FFFFFF" />
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <h4 className="font-medium">
-                    {method.type} ending in {method.last4}
-                  </h4>
-                  <p className="text-sm text-gray-500">Expires {method.expiry}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {method.isDefault && (
-                  <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded">Default</span>
-                )}
-                <button className="text-gray-400 hover:text-gray-600">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M11 4H4C3.44772 4 3 4.44772 3 5V20C3 20.5523 3.44772 21 4 21H19C19.5523 21 20 20.5523 20 20V13"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M18.5 2.5C18.7626 2.23735 19.1131 2.07731 19.5 2.07731C19.8869 2.07731 20.2374 2.23735 20.5 2.5C20.7626 2.76264 20.9227 3.11309 20.9227 3.5C20.9227 3.88691 20.7626 4.23735 20.5 4.5L12 13L9 14L10 11L18.5 2.5Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {showAddCard ? (
-        <div className="border border-dashed border-gray-300 rounded-lg p-6">
-          <h3 className="text-lg font-medium mb-4">Add New Card</h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <CreditCard className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="1234 5678 9012 3456"
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
-                <input
-                  type="text"
-                  placeholder="MM/YY"
-                  className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">CVC</label>
-                <input
-                  type="text"
-                  placeholder="123"
-                  className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cardholder Name</label>
-              <input
-                type="text"
-                placeholder="John Doe"
-                className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex items-center">
-              <input
-                id="default-card"
-                type="checkbox"
-                className="h-4 w-4 text-[#00C2CB] focus:ring-[#00C2CB] border-gray-300 rounded"
-              />
-              <label htmlFor="default-card" className="ml-2 block text-sm text-gray-700">
-                Set as default payment method
-              </label>
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end space-x-3">
-            <button
-              onClick={() => setShowAddCard(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button className="px-4 py-2 bg-[#00C2CB] text-white rounded-md hover:bg-[#00b0b9]">Add Card</button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setShowAddCard(true)} className="flex items-center text-[#00C2CB]">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="mr-2"
-          >
-            <path
-              d="M12 5V19M5 12H19"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Add New Payment Method
-        </button>
-      )}
-    </div>
-  )
-}
-
