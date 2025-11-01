@@ -238,6 +238,23 @@ export interface ClientBookingItem {
   bookingSlots: ClientBookingSlot[];
 }
 
+// --- Provider Client Types ---
+export interface ProviderClientLocation {
+  streetAddress: string;
+  city: string;
+  state: string;
+  postalCode: string;
+}
+
+export interface ProviderClient {
+  userId: string;
+  clientName: string;
+  mobileNo: string;
+  emailId: string;
+  location: ProviderClientLocation;
+  profilePicture: string;
+}
+
 // --- Service Interfaces ---
 export interface IProviderService {
   getProviders(

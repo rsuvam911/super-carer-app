@@ -12,11 +12,12 @@ import {
   Settings,
   Star,
   Users,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 // Helper to normalize role values coming from auth-context/localStorage
 // auth-context may set "client" or "care-provider"; middleware uses "care-provider"
@@ -30,16 +31,37 @@ function resolveRoleKey(role: string | null): "client" | "provider" | null {
   return null;
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onToggle?: () => void;
+}
+
+export default function Sidebar({ isOpen = true, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { logout, userRole, isLoading } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
 
   const roleKey = resolveRoleKey(userRole);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Don't render sidebar if role is not determined yet or invalid
   if (isLoading || !roleKey) {
     return (
-      <div className="w-64 h-full bg-[#1a2352] text-white flex items-center justify-center">
+      <div
+        className={`${
+          isMobile ? "fixed inset-0 z-50" : "w-64"
+        } h-full bg-white border-r border-gray-200 flex items-center justify-center`}
+      >
         <div className="text-gray-400">Loading...</div>
       </div>
     );
@@ -118,109 +140,183 @@ export default function Sidebar() {
     pathname.startsWith(`${base}${relPath}`);
 
   return (
-    <div className="w-64 h-full bg-[#1a2352] text-white flex flex-col">
-      <div className="p-6">
-        <div className="flex items-center justify-center mb-4">
-          <div className="relative">
-            <div className="w-40 h-24 flex items-center justify-center">
-              <Image
-                src="/care_logo.svg"
-                alt="Super Carer App Logo"
-                width={160}
-                height={96}
-                priority
-              />
-            </div>
+    <>
+      {/* Mobile overlay */}
+      {isMobile && isOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={onToggle}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`
+        ${
+          isMobile
+            ? `fixed left-0 top-0 z-50 h-full w-64 transform transition-transform duration-300 ease-in-out ${
+                isOpen ? "translate-x-0" : "-translate-x-full"
+              }`
+            : `${
+                isOpen ? "w-64" : "w-16"
+              } transition-all duration-300 ease-in-out`
+        }
+        bg-white border-r border-gray-200 text-gray-800 flex flex-col shadow-lg
+      `}
+      >
+        {/* Header with logo and close button */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            {(isOpen || isMobile) && (
+              <div className="flex items-center justify-center flex-1">
+                <div className="relative">
+                  <div className="w-32 h-20 flex items-center justify-center">
+                    <Image
+                      src="/care_logo.png"
+                      alt="Super Carer App Logo"
+                      width={128}
+                      height={80}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            {isMobile && (
+              <button
+                onClick={onToggle}
+                className="p-2 rounded-md hover:bg-gray-100 ml-2"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 flex flex-col">
-        {/* Home / Primary */}
-        <div className="px-3 py-2">
-          <p className="text-xs text-gray-400 px-3 mb-2">Home</p>
-          <nav className="space-y-1">
-            {filterByRole(homeLinks).map(({ href, label, icon: Icon }) => {
-              const fullHref = `${base}${href}`;
-              const active = isActive(href);
-              return (
-                <Link
-                  key={href}
-                  href={fullHref}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm ${active
-                    ? "bg-[#00C2CB]/20 text-[#00C2CB]"
-                    : "text-gray-300 hover:bg-[#2a3366]"
-                    }`}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Management */}
-        <div className="px-3 py-2 mt-6">
-          <p className="text-xs text-gray-400 px-3 mb-2">Management</p>
-          <nav className="space-y-1">
-            {filterByRole(managementLinks).map(
-              ({ href, label, icon: Icon }) => {
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          {/* Home / Primary */}
+          <div className="px-3 py-4">
+            {(isOpen || isMobile) && (
+              <p className="text-xs text-gray-500 px-3 mb-3 font-medium uppercase tracking-wider">
+                Home
+              </p>
+            )}
+            <nav className="space-y-1">
+              {filterByRole(homeLinks).map(({ href, label, icon: Icon }) => {
                 const fullHref = `${base}${href}`;
                 const active = isActive(href);
                 return (
                   <Link
                     key={href}
                     href={fullHref}
-                    className={`flex items-center px-3 py-2 rounded-md text-sm ${active
-                      ? "bg-[#00C2CB]/20 text-[#00C2CB]"
-                      : "text-gray-300 hover:bg-[#2a3366]"
-                      }`}
+                    onClick={isMobile ? onToggle : undefined}
+                    className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
+                      active
+                        ? "bg-blue-50 text-teal-600 border-r-2 border-teal-600"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-teal-900"
+                    }`}
+                    title={!isOpen && !isMobile ? label : undefined}
                   >
-                    <Icon className="mr-3 h-5 w-5" />
-                    {label}
+                    <Icon
+                      className={`h-5 w-5 ${
+                        isOpen || isMobile ? "mr-3" : "mx-auto"
+                      }`}
+                    />
+                    {(isOpen || isMobile) && label}
                   </Link>
                 );
-              }
+              })}
+            </nav>
+          </div>
+
+          {/* Management */}
+          <div className="px-3 py-2">
+            {(isOpen || isMobile) && (
+              <p className="text-xs text-gray-500 px-3 mb-3 font-medium uppercase tracking-wider">
+                Management
+              </p>
             )}
-          </nav>
-        </div>
+            <nav className="space-y-1">
+              {filterByRole(managementLinks).map(
+                ({ href, label, icon: Icon }) => {
+                  const fullHref = `${base}${href}`;
+                  const active = isActive(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={fullHref}
+                      onClick={isMobile ? onToggle : undefined}
+                      className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
+                        active
+                          ? "bg-blue-50 text-blue-600 border-r-2 border-blue-600"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                      title={!isOpen && !isMobile ? label : undefined}
+                    >
+                      <Icon
+                        className={`h-5 w-5 ${
+                          isOpen || isMobile ? "mr-3" : "mx-auto"
+                        }`}
+                      />
+                      {(isOpen || isMobile) && label}
+                    </Link>
+                  );
+                }
+              )}
+            </nav>
+          </div>
 
-        {/* System */}
-        <div className="px-3 py-2 mt-6">
-          <p className="text-xs text-gray-400 px-3 mb-2">System</p>
-          <nav className="space-y-1">
-            {filterByRole(systemLinks).map(({ href, label, icon: Icon }) => {
-              const fullHref = `${base}${href}`;
-              const active = isActive(href);
-              return (
-                <Link
-                  key={href}
-                  href={fullHref}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm ${active
-                    ? "bg-[#00C2CB]/20 text-[#00C2CB]"
-                    : "text-gray-300 hover:bg-[#2a3366]"
+          {/* System */}
+          <div className="px-3 py-2">
+            {(isOpen || isMobile) && (
+              <p className="text-xs text-gray-500 px-3 mb-3 font-medium uppercase tracking-wider">
+                System
+              </p>
+            )}
+            <nav className="space-y-1">
+              {filterByRole(systemLinks).map(({ href, label, icon: Icon }) => {
+                const fullHref = `${base}${href}`;
+                const active = isActive(href);
+                return (
+                  <Link
+                    key={href}
+                    href={fullHref}
+                    onClick={isMobile ? onToggle : undefined}
+                    className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
+                      active
+                        ? "bg-blue-50 text-blue-600 border-r-2 border-blue-600"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+                    title={!isOpen && !isMobile ? label : undefined}
+                  >
+                    <Icon
+                      className={`h-5 w-5 ${
+                        isOpen || isMobile ? "mr-3" : "mx-auto"
+                      }`}
+                    />
+                    {(isOpen || isMobile) && label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
 
-        {/* Logout */}
-        <div className="mt-auto px-3 py-6">
-          <button
-            onClick={logout}
-            className="flex items-center px-3 py-2 w-full rounded-md text-sm text-gray-300 hover:bg-[#2a3366]"
-          >
-            <LogOut className="mr-3 h-5 w-5" />
-            Log Out
-          </button>
+          {/* Logout */}
+          <div className="mt-auto px-3 py-6">
+            <button
+              onClick={logout}
+              className={`flex items-center px-3 py-2 w-full rounded-md text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors ${
+                !isOpen && !isMobile ? "justify-center" : ""
+              }`}
+              title={!isOpen && !isMobile ? "Log Out" : undefined}
+            >
+              <LogOut
+                className={`h-5 w-5 ${isOpen || isMobile ? "mr-3" : ""}`}
+              />
+              {(isOpen || isMobile) && "Log Out"}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
