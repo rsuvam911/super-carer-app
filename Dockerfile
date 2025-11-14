@@ -6,20 +6,21 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* pnpm-lock.yaml* bun.lockb* ./
+# Install bun globally
+RUN npm install -g bun
 
-# Install dependencies based on the available lock file
-RUN \
-  if [ -f bun.lockb ]; then corepack enable bun && bun install --frozen-lockfile; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  else npm install; \
-  fi
+# Copy package files
+COPY package.json bun.lockb* ./
+
+# Install dependencies with bun
+RUN bun install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Install bun in builder stage
+RUN npm install -g bun
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -36,12 +37,8 @@ ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application
-RUN \
-  if [ -f bun.lockb ]; then corepack enable bun && bun run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else npm run build; \
-  fi
+# Build the application with bun
+RUN bun run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

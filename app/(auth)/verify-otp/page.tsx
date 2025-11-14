@@ -9,9 +9,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
   const { verifyOtp, resendOtp, isLoading } = useAuth();
   const [otp, setOtp] = useState("");
   const [isResending, setIsResending] = useState(false);
@@ -142,5 +142,22 @@ export default function VerifyOtpPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Verify your account</h1>
+            <p className="text-sm text-gray-600 mt-1">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <VerifyOtpContent />
+    </Suspense>
   );
 }

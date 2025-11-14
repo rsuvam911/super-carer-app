@@ -6,16 +6,14 @@ RUN apk add --no-cache libc6-compat curl
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* pnpm-lock.yaml* bun.lockb* ./
+# Install bun globally
+RUN npm install -g bun
 
-# Install dependencies based on the available lock file
-RUN \
-  if [ -f bun.lockb ]; then corepack enable bun && bun install; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  else npm install; \
-  fi
+# Copy package files
+COPY package.json bun.lockb* ./
+
+# Install dependencies with bun
+RUN bun install
 
 # Copy source code (will be overridden by volume mount in docker-compose)
 COPY . .
@@ -26,9 +24,5 @@ EXPOSE 3000
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Start development server
-CMD \
-  if [ -f bun.lockb ]; then corepack enable bun && bun run dev; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run dev; \
-  else npm run dev; \
-  fi
+# Start development server with bun
+CMD ["bun", "run", "dev"]
