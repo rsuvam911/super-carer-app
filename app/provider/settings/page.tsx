@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import ProviderService from "@/services/providerService";
+import StripeConnectService from "@/services/stripeConnectService";
 import {
   ProviderProfileDetails,
   ProviderCategory,
@@ -1081,213 +1082,125 @@ function NotificationSettings() {
 }
 
 function PaymentSettings() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCompleteKYC = async () => {
+    setIsLoading(true);
+    try {
+      console.log("[Payment] Initiating Stripe Connect KYC...");
+      const response = await StripeConnectService.getLinkRefresh();
+
+      if (response.success && response.payload?.url) {
+        console.log(
+          "[Payment] Redirecting to Stripe Connect:",
+          response.payload.url
+        );
+        toast.success("Redirecting to Stripe Connect...");
+        // Redirect to Stripe Connect onboarding
+        window.location.href = response.payload.url;
+      } else {
+        console.error("[Payment] Failed to get Stripe Connect link:", response);
+        toast.error(response.message || "Failed to initiate account setup");
+      }
+    } catch (error: any) {
+      console.error("[Payment] Error initiating Stripe Connect:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to initiate account setup"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-medium mb-4">Payment Methods</h3>
-
-      <div className="space-y-4">
-        <div className="border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-12 h-8 bg-blue-100 rounded flex items-center justify-center mr-3">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <rect width="24" height="24" rx="4" fill="#1A56DB" />
-                  <path
-                    d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18Z"
-                    fill="#FF5F00"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h4 className="font-medium">Mastercard ending in 4242</h4>
-                <p className="text-sm text-gray-500">Expires 04/2026</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded">
-                Default
-              </span>
-              <button className="text-gray-400 hover:text-gray-600">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M11 4H4C3.44772 4 3 4.44772 3 5V20C3 20.5523 3.44772 21 4 21H19C19.5523 21 20 20.5523 20 20V13"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M18.5 2.5C18.7626 2.23735 19.1131 2.07731 19.5 2.07731C19.8869 2.07731 20.2374 2.23735 20.5 2.5C20.7626 2.76264 20.9227 3.11309 20.9227 3.5C20.9227 3.88691 20.7626 4.23735 20.5 4.5L12 13L9 14L10 11L18.5 2.5Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Account Setup Card */}
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+        <div className="flex items-start space-x-6">
+          <div className="w-16 h-16 bg-[#0DA2A4]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+            <CreditCard className="h-8 w-8 text-[#0DA2A4]" />
           </div>
-        </div>
 
-        <div className="border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-12 h-8 bg-blue-100 rounded flex items-center justify-center mr-3">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <rect width="24" height="24" rx="4" fill="#2D3A9E" />
-                  <path d="M9 16H15V8H9V16Z" fill="#FFFFFF" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="font-medium">Visa ending in 1234</h4>
-                <p className="text-sm text-gray-500">Expires 12/2025</p>
+          <div className="flex-1">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Complete Account Setup
+            </h3>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              To receive payments for your services, you need to complete your
+              account verification through Stripe Connect. This secure process
+              ensures compliance with financial regulations and enables you to
+              accept payments from clients.
+            </p>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <Shield className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-blue-900 mb-1">
+                    What you'll need:
+                  </h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Government-issued ID or passport</li>
+                    <li>• Bank account details for payouts</li>
+                    <li>• Business or personal tax information</li>
+                    <li>• Contact and address information</li>
+                  </ul>
+                </div>
               </div>
             </div>
-            <button className="text-gray-400 hover:text-gray-600">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M11 4H4C3.44772 4 3 4.44772 3 5V20C3 20.5523 3.44772 21 4 21H19C19.5523 21 20 20.5523 20 20V13"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M18.5 2.5C18.7626 2.23735 19.1131 2.07731 19.5 2.07731C19.8869 2.07731 20.2374 2.23735 20.5 2.5C20.7626 2.76264 20.9227 3.11309 20.9227 3.5C20.9227 3.88691 20.7626 4.23735 20.5 4.5L12 13L9 14L10 11L18.5 2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+
+            <button
+              onClick={handleCompleteKYC}
+              disabled={isLoading}
+              className="w-full sm:w-auto bg-[#0DA2A4] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#0C8F91] transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Loading...</span>
+                </>
+              ) : (
+                <>
+                  <Shield className="h-5 w-5" />
+                  <span>Complete Account KYC</span>
+                </>
+              )}
             </button>
+
+            <p className="text-xs text-gray-500 mt-4">
+              By continuing, you'll be redirected to Stripe's secure platform to
+              complete your account verification. This process typically takes
+              5-10 minutes.
+            </p>
           </div>
         </div>
       </div>
 
-      <button className="mt-4 flex items-center text-[#0DA2A4] hover:text-[#0C8F91] transition-colors">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="mr-2"
-        >
-          <path
-            d="M12 5V19M5 12H19"
+      {/* Information Card */}
+      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+          <svg
+            className="h-5 w-5 mr-2 text-[#0DA2A4]"
+            fill="none"
+            viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        Add New Payment Method
-      </button>
-
-      <div className="border-t border-gray-200 pt-6 mt-6">
-        <h3 className="text-lg font-medium mb-4">Billing Information</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Billing Name
-            </label>
-            <input
-              type="text"
-              defaultValue="Rachel Green"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Billing Email
-            </label>
-            <input
-              type="email"
-              defaultValue="rachel.green@example.com"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Billing Address
-            </label>
-            <input
-              type="text"
-              defaultValue="123 Main St, Apt 4B"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              City
-            </label>
-            <input
-              type="text"
-              defaultValue="New York"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              State / Province
-            </label>
-            <input
-              type="text"
-              defaultValue="NY"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ZIP / Postal Code
-            </label>
-            <input
-              type="text"
-              defaultValue="10001"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            className="bg-[#0DA2A4] text-white px-6 py-2 rounded-md hover:bg-[#0C8F91] transition-colors"
           >
-            Save Changes
-          </button>
-        </div>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          Why Stripe Connect?
+        </h4>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Stripe Connect is a secure payment platform trusted by millions of
+          businesses worldwide. It ensures your financial information is
+          protected and enables seamless payment processing for your caregiving
+          services. All transactions are encrypted and comply with international
+          financial regulations.
+        </p>
       </div>
     </div>
   );
