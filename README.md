@@ -14,10 +14,10 @@ A Next.js application for healthcare provider management with Docker containeriz
 1. Copy the environment example file:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-2. Update the environment variables in `.env.local` as needed:
+2. Update the environment variables in `.env` as needed:
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://careappapi.intellexio.com/api/v1
@@ -241,7 +241,7 @@ docker-compose exec app sh
 
 ### Production Security
 
-1. **Environment Variables**: Never commit `.env.local` to version control
+1. **Environment Variables**: Never commit `.env` to version control
 2. **SSL/TLS**: Configure proper SSL certificates for production
 3. **Firewall**: Restrict access to necessary ports only
 4. **Updates**: Regularly update base images and dependencies
@@ -265,8 +265,8 @@ git clone <repository-url>
 cd <project-directory>
 
 # Set up environment
-cp .env.example .env.local
-# Edit .env.local with production values
+cp .env.example .env
+# Edit .env with production values
 ```
 
 2. **Deploy**:

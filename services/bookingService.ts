@@ -231,6 +231,21 @@ export class BookingService {
       throw error;
     }
   }
+
+  static async downloadInvoice(invoiceId: string): Promise<Blob> {
+    try {
+      const response = await apiClient.get(
+        `/bookings/invoice/${invoiceId}/download`,
+        {
+          responseType: "blob",
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error downloading invoice ${invoiceId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export default BookingService;
