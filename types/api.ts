@@ -97,6 +97,7 @@ export interface DocumentMetadata {
   certificationType: string;
   certificationNumber: string;
   expiryDate: string;
+  otherCertificationType?: string; // Optional field for "Other" certification types
 }
 
 export interface Document {
@@ -145,6 +146,7 @@ export interface ProviderProfileDetails {
   qualifications: string; // This is a JSON string, needs parsing
   ratingCount: number;
   travelExperience: TravelExperience;
+  preferredCurrency?: string; // Stripe currency code
 }
 
 // --- Availability Types ---

@@ -49,6 +49,11 @@ export class ProviderService {
           UserType: "CareProvider", // Check if needed
         },
       });
+      console.log("[ProviderService] Raw API response:", response.data);
+      console.log(
+        "[ProviderService] PreferredCurrency from API:",
+        response.data.payload?.preferredCurrency
+      );
       return response.data;
     } catch (error) {
       console.error(`Error fetching profile for user ${userId}:`, error);
@@ -101,17 +106,45 @@ export class ProviderService {
 
   // 5. Upload document
   static async uploadDocument(
-    providerId: string,
+    userId: string,
     file: File,
     metadata: DocumentMetadata
   ): Promise<BaseApiResponse<Document>> {
     try {
+      console.log("[ProviderService] Uploading document for user:", userId);
+      console.log("[ProviderService] Document metadata:", metadata);
+
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("metadata", JSON.stringify(metadata));
+      formData.append("File", file);
+      formData.append("DocumentType", metadata.documentType);
+      formData.append("Issuer", metadata.issuer);
+      formData.append("Country", metadata.country);
+      formData.append("CertificationType", metadata.certificationType);
+
+      // Add optional fields
+      if (metadata.certificationNumber) {
+        formData.append("CertificationNumber", metadata.certificationNumber);
+      }
+      if (metadata.expiryDate) {
+        // Convert expiry date to UTC ISO string format
+        const expiryDateUTC = new Date(metadata.expiryDate).toISOString();
+        formData.append("ExpiryDate", expiryDateUTC);
+        console.log(
+          "[ProviderService] Expiry date converted to UTC:",
+          expiryDateUTC
+        );
+      }
+      if (metadata.otherCertificationType) {
+        formData.append(
+          "OtherCertificationType",
+          metadata.otherCertificationType
+        );
+      }
+
+      console.log("[ProviderService] FormData prepared, sending request...");
 
       const response = await apiClient.post<BaseApiResponse<Document>>(
-        `/providers/${providerId}/documents`,
+        `/account/users/${userId}/document`,
         formData,
         {
           headers: {
@@ -120,10 +153,12 @@ export class ProviderService {
           },
         }
       );
+
+      console.log("[ProviderService] Document upload response:", response.data);
       return response.data;
     } catch (error) {
       console.error(
-        `Error uploading document for provider ${providerId}:`,
+        `[ProviderService] Error uploading document for user ${userId}:`,
         error
       );
       throw error;
@@ -186,6 +221,7 @@ export class ProviderService {
       Bio?: string;
       ProvidesOvernight?: boolean;
       ProvidesLiveIn?: boolean;
+      PreferredCurrency?: string;
       PrimaryAddress: {
         StreetAddress: string;
         City: string;
@@ -228,6 +264,13 @@ export class ProviderService {
         formData.append(
           "ProvidesLiveIn",
           profileData.ProvidesLiveIn.toString()
+        );
+      }
+      if (profileData.PreferredCurrency) {
+        formData.append("PreferredCurrency", profileData.PreferredCurrency);
+        console.log(
+          "[ProviderService] Adding PreferredCurrency to FormData:",
+          profileData.PreferredCurrency
         );
       }
       if (profileData.BufferDuration) {

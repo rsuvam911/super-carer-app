@@ -104,11 +104,12 @@ export default function SettingsPage() {
 
   // Handle document upload
   const handleDocumentUpload = async (file: File, metadata: any) => {
-    if (!profileData) return;
+    if (!profileData || !user?.userId) return;
 
     try {
+      console.log("[Settings] Uploading document for user:", user.userId);
       const response = await ProviderService.uploadDocument(
-        profileData.providerId,
+        user.userId,
         file,
         metadata
       );
@@ -122,9 +123,12 @@ export default function SettingsPage() {
             : null
         );
         toast.success("Document uploaded successfully");
+      } else {
+        toast.error(response.message || "Failed to upload document");
       }
     } catch (error: any) {
-      console.error("Error uploading document:", error);
+      console.error("[Settings] Error uploading document:", error);
+      toast.error(error.response?.data?.message || "Failed to upload document");
       throw error;
     }
   };
@@ -157,7 +161,7 @@ export default function SettingsPage() {
     if (authLoading) {
       return (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00C2CB]"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0DA2A4]"></div>
           <span className="ml-2">Authenticating...</span>
         </div>
       );
@@ -187,7 +191,7 @@ export default function SettingsPage() {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00C2CB]"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0DA2A4]"></div>
           <span className="ml-2">Loading...</span>
         </div>
       );
@@ -201,7 +205,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => fetchProviderProfile(user.userId)}
-              className="bg-[#00C2CB] text-white px-4 py-2 rounded-md hover:bg-[#00A5AD]"
+              className="bg-[#0DA2A4] text-white px-4 py-2 rounded-md hover:bg-[#0C8F91]"
             >
               Retry
             </button>
@@ -267,7 +271,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab("profile")}
             className={`px-6 py-4 text-sm font-medium flex items-center ${
               activeTab === "profile"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+                ? "text-[#0DA2A4] border-b-2 border-[#0DA2A4]"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -279,7 +283,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab("categories")}
             className={`px-6 py-4 text-sm font-medium flex items-center ${
               activeTab === "categories"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+                ? "text-[#0DA2A4] border-b-2 border-[#0DA2A4]"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -291,7 +295,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab("documents")}
             className={`px-6 py-4 text-sm font-medium flex items-center ${
               activeTab === "documents"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+                ? "text-[#0DA2A4] border-b-2 border-[#0DA2A4]"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -303,7 +307,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab("notifications")}
             className={`px-6 py-4 text-sm font-medium flex items-center ${
               activeTab === "notifications"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+                ? "text-[#0DA2A4] border-b-2 border-[#0DA2A4]"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -315,7 +319,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab("payment")}
             className={`px-6 py-4 text-sm font-medium flex items-center ${
               activeTab === "payment"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+                ? "text-[#0DA2A4] border-b-2 border-[#0DA2A4]"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -327,7 +331,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab("security")}
             className={`px-6 py-4 text-sm font-medium flex items-center ${
               activeTab === "security"
-                ? "text-[#00C2CB] border-b-2 border-[#00C2CB]"
+                ? "text-[#0DA2A4] border-b-2 border-[#0DA2A4]"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -366,8 +370,176 @@ function ProfileSettings({
     city: profileData.primaryAddress?.city || "",
     state: profileData.primaryAddress?.state || "",
     postalCode: profileData.primaryAddress?.postalCode || "",
+    preferredCurrency: profileData.preferredCurrency || "",
   });
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
+
+  // Sync form data when profileData changes (e.g., after API fetch)
+  useEffect(() => {
+    console.log("[Profile Settings] ProfileData updated:", profileData);
+    console.log(
+      "[Profile Settings] PreferredCurrency from API:",
+      profileData.preferredCurrency
+    );
+
+    setFormData({
+      firstName: profileData.firstName || "",
+      lastName: profileData.lastName || "",
+      email: profileData.email || "",
+      phoneNumber: profileData.phoneNumber || "",
+      gender: profileData.gender || "",
+      dateOfBirth: profileData.dateOfBirth
+        ? new Date(profileData.dateOfBirth).toISOString().split("T")[0]
+        : "",
+      yearsExperience: profileData.yearsExperience || 0,
+      bio: profileData.bio || "",
+      providesOvernight: profileData.providesOvernight || false,
+      providesLiveIn: profileData.providesLiveIn || false,
+      streetAddress: profileData.primaryAddress?.streetAddress || "",
+      city: profileData.primaryAddress?.city || "",
+      state: profileData.primaryAddress?.state || "",
+      postalCode: profileData.primaryAddress?.postalCode || "",
+      preferredCurrency: profileData.preferredCurrency || "",
+    });
+  }, [profileData]);
+
+  // Stripe accepted currencies with full names
+  const CURRENCIES = [
+    { code: "USD", name: "United States Dollar" },
+    { code: "AED", name: "United Arab Emirates Dirham" },
+    { code: "AFN", name: "Afghan Afghani" },
+    { code: "ALL", name: "Albanian Lek" },
+    { code: "AMD", name: "Armenian Dram" },
+    { code: "ANG", name: "Netherlands Antillean Guilder" },
+    { code: "AOA", name: "Angolan Kwanza" },
+    { code: "ARS", name: "Argentine Peso" },
+    { code: "AUD", name: "Australian Dollar" },
+    { code: "AWG", name: "Aruban Florin" },
+    { code: "AZN", name: "Azerbaijani Manat" },
+    { code: "BAM", name: "Bosnia-Herzegovina Convertible Mark" },
+    { code: "BBD", name: "Barbadian Dollar" },
+    { code: "BDT", name: "Bangladeshi Taka" },
+    { code: "BGN", name: "Bulgarian Lev" },
+    { code: "BIF", name: "Burundian Franc" },
+    { code: "BMD", name: "Bermudan Dollar" },
+    { code: "BND", name: "Brunei Dollar" },
+    { code: "BOB", name: "Bolivian Boliviano" },
+    { code: "BRL", name: "Brazilian Real" },
+    { code: "BSD", name: "Bahamian Dollar" },
+    { code: "BWP", name: "Botswanan Pula" },
+    { code: "BYN", name: "Belarusian Ruble" },
+    { code: "BZD", name: "Belize Dollar" },
+    { code: "CAD", name: "Canadian Dollar" },
+    { code: "CDF", name: "Congolese Franc" },
+    { code: "CHF", name: "Swiss Franc" },
+    { code: "CLP", name: "Chilean Peso" },
+    { code: "CNY", name: "Chinese Yuan" },
+    { code: "COP", name: "Colombian Peso" },
+    { code: "CRC", name: "Costa Rican Colón" },
+    { code: "CVE", name: "Cape Verdean Escudo" },
+    { code: "CZK", name: "Czech Koruna" },
+    { code: "DJF", name: "Djiboutian Franc" },
+    { code: "DKK", name: "Danish Krone" },
+    { code: "DOP", name: "Dominican Peso" },
+    { code: "DZD", name: "Algerian Dinar" },
+    { code: "EGP", name: "Egyptian Pound" },
+    { code: "ETB", name: "Ethiopian Birr" },
+    { code: "EUR", name: "Euro" },
+    { code: "FJD", name: "Fijian Dollar" },
+    { code: "FKP", name: "Falkland Islands Pound" },
+    { code: "GBP", name: "British Pound Sterling" },
+    { code: "GEL", name: "Georgian Lari" },
+    { code: "GIP", name: "Gibraltar Pound" },
+    { code: "GMD", name: "Gambian Dalasi" },
+    { code: "GNF", name: "Guinean Franc" },
+    { code: "GTQ", name: "Guatemalan Quetzal" },
+    { code: "GYD", name: "Guyanaese Dollar" },
+    { code: "HKD", name: "Hong Kong Dollar" },
+    { code: "HNL", name: "Honduran Lempira" },
+    { code: "HTG", name: "Haitian Gourde" },
+    { code: "HUF", name: "Hungarian Forint" },
+    { code: "IDR", name: "Indonesian Rupiah" },
+    { code: "ILS", name: "Israeli New Shekel" },
+    { code: "INR", name: "Indian Rupee" },
+    { code: "ISK", name: "Icelandic Króna" },
+    { code: "JMD", name: "Jamaican Dollar" },
+    { code: "JPY", name: "Japanese Yen" },
+    { code: "KES", name: "Kenyan Shilling" },
+    { code: "KGS", name: "Kyrgystani Som" },
+    { code: "KHR", name: "Cambodian Riel" },
+    { code: "KMF", name: "Comorian Franc" },
+    { code: "KRW", name: "South Korean Won" },
+    { code: "KYD", name: "Cayman Islands Dollar" },
+    { code: "KZT", name: "Kazakhstani Tenge" },
+    { code: "LAK", name: "Laotian Kip" },
+    { code: "LBP", name: "Lebanese Pound" },
+    { code: "LKR", name: "Sri Lankan Rupee" },
+    { code: "LRD", name: "Liberian Dollar" },
+    { code: "LSL", name: "Lesotho Loti" },
+    { code: "MAD", name: "Moroccan Dirham" },
+    { code: "MDL", name: "Moldovan Leu" },
+    { code: "MGA", name: "Malagasy Ariary" },
+    { code: "MKD", name: "Macedonian Denar" },
+    { code: "MMK", name: "Myanma Kyat" },
+    { code: "MNT", name: "Mongolian Tugrik" },
+    { code: "MOP", name: "Macanese Pataca" },
+    { code: "MUR", name: "Mauritian Rupee" },
+    { code: "MVR", name: "Maldivian Rufiyaa" },
+    { code: "MWK", name: "Malawian Kwacha" },
+    { code: "MXN", name: "Mexican Peso" },
+    { code: "MYR", name: "Malaysian Ringgit" },
+    { code: "MZN", name: "Mozambican Metical" },
+    { code: "NAD", name: "Namibian Dollar" },
+    { code: "NGN", name: "Nigerian Naira" },
+    { code: "NIO", name: "Nicaraguan Córdoba" },
+    { code: "NOK", name: "Norwegian Krone" },
+    { code: "NPR", name: "Nepalese Rupee" },
+    { code: "NZD", name: "New Zealand Dollar" },
+    { code: "PAB", name: "Panamanian Balboa" },
+    { code: "PEN", name: "Peruvian Nuevo Sol" },
+    { code: "PGK", name: "Papua New Guinean Kina" },
+    { code: "PHP", name: "Philippine Peso" },
+    { code: "PKR", name: "Pakistani Rupee" },
+    { code: "PLN", name: "Polish Zloty" },
+    { code: "PYG", name: "Paraguayan Guarani" },
+    { code: "QAR", name: "Qatari Rial" },
+    { code: "RON", name: "Romanian Leu" },
+    { code: "RSD", name: "Serbian Dinar" },
+    { code: "RUB", name: "Russian Ruble" },
+    { code: "RWF", name: "Rwandan Franc" },
+    { code: "SAR", name: "Saudi Riyal" },
+    { code: "SBD", name: "Solomon Islands Dollar" },
+    { code: "SCR", name: "Seychellois Rupee" },
+    { code: "SEK", name: "Swedish Krona" },
+    { code: "SGD", name: "Singapore Dollar" },
+    { code: "SHP", name: "Saint Helena Pound" },
+    { code: "SLE", name: "Sierra Leonean Leone" },
+    { code: "SOS", name: "Somali Shilling" },
+    { code: "SRD", name: "Surinamese Dollar" },
+    { code: "STD", name: "São Tomé and Príncipe Dobra" },
+    { code: "SZL", name: "Swazi Lilangeni" },
+    { code: "THB", name: "Thai Baht" },
+    { code: "TJS", name: "Tajikistani Somoni" },
+    { code: "TOP", name: "Tongan Paʻanga" },
+    { code: "TRY", name: "Turkish Lira" },
+    { code: "TTD", name: "Trinidad and Tobago Dollar" },
+    { code: "TWD", name: "New Taiwan Dollar" },
+    { code: "TZS", name: "Tanzanian Shilling" },
+    { code: "UAH", name: "Ukrainian Hryvnia" },
+    { code: "UGX", name: "Ugandan Shilling" },
+    { code: "UYU", name: "Uruguayan Peso" },
+    { code: "UZS", name: "Uzbekistan Som" },
+    { code: "VND", name: "Vietnamese Dong" },
+    { code: "VUV", name: "Vanuatu Vatu" },
+    { code: "WST", name: "Samoan Tala" },
+    { code: "XAF", name: "Central African CFA Franc" },
+    { code: "XCD", name: "East Caribbean Dollar" },
+    { code: "XOF", name: "West African CFA Franc" },
+    { code: "XPF", name: "CFP Franc" },
+    { code: "YER", name: "Yemeni Rial" },
+    { code: "ZAR", name: "South African Rand" },
+    { code: "ZMW", name: "Zambian Kwacha" },
+  ];
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -412,15 +584,22 @@ function ProfileSettings({
 
   const handleSaveChanges = async () => {
     if (!user?.userId) {
+      console.error("[Profile Update] User not authenticated");
       toast.error("User not authenticated");
       return;
     }
 
     if (!validateForm()) {
+      console.warn("[Profile Update] Form validation failed");
       return;
     }
 
     setIsUpdating(true);
+    console.log(
+      "[Profile Update] Starting profile update for user:",
+      user.userId
+    );
+
     try {
       const updateData = {
         FirstName: formData.firstName,
@@ -433,6 +612,7 @@ function ProfileSettings({
         Bio: formData.bio,
         ProvidesOvernight: formData.providesOvernight,
         ProvidesLiveIn: formData.providesLiveIn,
+        PreferredCurrency: formData.preferredCurrency,
         PrimaryAddress: {
           StreetAddress: formData.streetAddress,
           City: formData.city,
@@ -446,32 +626,45 @@ function ProfileSettings({
         BufferDuration: "",
       };
 
+      console.log("[Profile Update] Sending update data:", updateData);
+
       const response = await ProviderService.updateProviderProfile(
         user.userId,
         updateData
       );
 
+      console.log("[Profile Update] API Response:", response);
+
       if (response.success) {
+        console.log("[Profile Update] Profile updated successfully");
         toast.success("Profile updated successfully!");
-        // Optionally refresh the profile data
+        // Only refresh on success
         window.location.reload();
       } else {
+        console.error("[Profile Update] Update failed:", response.message);
         toast.error(response.message || "Failed to update profile");
       }
     } catch (error: any) {
-      console.error("Error updating profile:", error);
+      console.error("[Profile Update] Exception caught:", error);
+      console.error("[Profile Update] Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack,
+      });
       toast.error(error.response?.data?.message || "Failed to update profile");
     } finally {
       setIsUpdating(false);
+      console.log("[Profile Update] Update process completed");
     }
   };
   return (
     <div className="max-w-full mx-auto space-y-6 md:space-y-8 lg:space-y-10 px-2 sm:px-4">
       {/* Profile Header Section */}
-      <div className="bg-gradient-to-br from-[#00C2CB] to-blue-600 rounded-2xl p-7 text-white shadow-xl">
+      <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100">
         <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
           <div className="relative">
-            <div className="w-28 h-28 rounded-full bg-white/20 overflow-hidden ring-4 ring-white/30">
+            <div className="w-28 h-28 rounded-full bg-gray-100 overflow-hidden ring-4 ring-[#0DA2A4]/10">
               <img
                 src={
                   profileData.profilePictureUrl ||
@@ -481,26 +674,26 @@ function ProfileSettings({
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
-              <User className="h-4 w-4 text-[#00C2CB]" />
+            <div className="absolute -bottom-2 -right-2 bg-[#0DA2A4] rounded-full p-2 shadow-lg">
+              <User className="h-4 w-4 text-white" />
             </div>
           </div>
 
           <div className="text-center md:text-left flex-1">
-            <h2 className="text-2xl font-bold mb-2">{`${profileData.firstName} ${profileData.lastName}`}</h2>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900">{`${profileData.firstName} ${profileData.lastName}`}</h2>
             <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
               <div className="flex items-center justify-center md:justify-start">
-                <Award className="h-4 w-4 mr-2" />
-                <span className="text-white/90">Professional Caregiver</span>
+                <Award className="h-4 w-4 mr-2 text-[#0DA2A4]" />
+                <span className="text-gray-600">Professional Caregiver</span>
               </div>
               <div className="flex items-center justify-center md:justify-start">
-                <Star className="h-4 w-4 mr-2" />
-                <span className="text-white/90">
+                <Star className="h-4 w-4 mr-2 text-[#0DA2A4]" />
+                <span className="text-gray-600">
                   {profileData.yearsExperience} years experience
                 </span>
               </div>
             </div>
-            <p className="text-white/80 mt-3 text-sm leading-relaxed">
+            <p className="text-gray-600 mt-3 text-sm leading-relaxed">
               {profileData.bio || "No bio available"}
             </p>
           </div>
@@ -515,14 +708,14 @@ function ProfileSettings({
             />
             <label
               htmlFor="profile-picture-upload"
-              className="bg-white text-[#00C2CB] px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer text-center"
+              className="bg-[#0DA2A4] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#0C8F91] transition-colors cursor-pointer text-center"
             >
               Upload New Photo
             </label>
             <button
               type="button"
               onClick={() => setProfilePicture(null)}
-              className="bg-white/10 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-colors"
+              className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
             >
               Remove Photo
             </button>
@@ -531,349 +724,286 @@ function ProfileSettings({
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8 xl:gap-10">
-        {/* Left Column - Personal Info */}
-        <div className="lg:col-span-2 xl:col-span-3 space-y-4 md:space-y-6 lg:space-y-8">
-          {/* Personal Information Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <User className="h-5 w-5 mr-2 text-[#00C2CB]" />
-                Personal Information
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6 md:p-8 lg:p-10">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8 xl:gap-10">
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      value={formData.firstName + " " + formData.lastName}
-                      onChange={(e) => {
-                        const names = e.target.value.split(" ");
-                        handleInputChange("firstName", names[0] || "");
-                        handleInputChange(
-                          "lastName",
-                          names.slice(1).join(" ") || ""
-                        );
-                      }}
-                      className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                      className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="tel"
-                      value={formData.phoneNumber}
-                      onChange={(e) =>
-                        handleInputChange("phoneNumber", e.target.value)
-                      }
-                      className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Gender
-                  </label>
-                  <select
-                    value={formData.gender}
-                    onChange={(e) =>
-                      handleInputChange("gender", e.target.value)
-                    }
-                    className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors bg-white"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Years of Experience
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      max="50"
-                      value={formData.yearsExperience}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "yearsExperience",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Date of Birth
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) =>
-                        handleInputChange("dateOfBirth", e.target.value)
-                      }
-                      className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div className="space-y-6">
+        {/* Personal Information Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <User className="h-5 w-5 mr-2 text-[#0DA2A4]" />
+              Personal Information
+            </h3>
           </div>
-
-          {/* Address Information Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <MapPin className="h-5 w-5 mr-2 text-[#00C2CB]" />
-                Address Information
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6 md:p-8 lg:p-10">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 xl:gap-10">
-                <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Street Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.streetAddress}
-                    onChange={(e) =>
-                      handleInputChange("streetAddress", e.target.value)
-                    }
-                    className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    placeholder="Enter your street address"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
-                    className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    placeholder="Enter your city"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    State/Province
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.state}
-                    onChange={(e) => handleInputChange("state", e.target.value)}
-                    className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    placeholder="Enter your state/province"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Postal Code
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.postalCode}
-                    onChange={(e) =>
-                      handleInputChange("postalCode", e.target.value)
-                    }
-                    className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors"
-                    placeholder="Enter your postal code"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bio Section Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-[#00C2CB]" />
-                Professional Bio
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6 md:p-8 lg:p-10">
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700">
-                  Tell us about yourself
+                  Full Name
                 </label>
-                <textarea
-                  rows={4}
-                  value={formData.bio}
-                  onChange={(e) => handleInputChange("bio", e.target.value)}
-                  className="p-3 sm:p-4 md:p-5 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB]/20 focus:border-[#00C2CB] transition-colors resize-none"
-                  placeholder="Share your experience, specialties, and what makes you a great caregiver..."
-                />
-                <p className="text-xs text-gray-500">Maximum 500 characters</p>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={formData.firstName + " " + formData.lastName}
+                    onChange={(e) => {
+                      const names = e.target.value.split(" ");
+                      handleInputChange("firstName", names[0] || "");
+                      handleInputChange(
+                        "lastName",
+                        names.slice(1).join(" ") || ""
+                      );
+                    }}
+                    className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) =>
+                      handleInputChange("phoneNumber", e.target.value)
+                    }
+                    className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Gender
+                </label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => handleInputChange("gender", e.target.value)}
+                  className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors bg-white"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Years of Experience
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={formData.yearsExperience}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "yearsExperience",
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Date of Birth
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) =>
+                      handleInputChange("dateOfBirth", e.target.value)
+                    }
+                    className="pl-8 sm:pl-10 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Preferred Currency
+                  {formData.preferredCurrency && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      (Cannot be changed once set)
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={formData.preferredCurrency}
+                  onChange={(e) =>
+                    handleInputChange("preferredCurrency", e.target.value)
+                  }
+                  disabled={!!formData.preferredCurrency}
+                  className={`px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors ${
+                    formData.preferredCurrency
+                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                      : "bg-white"
+                  }`}
+                >
+                  <option value="">Select Currency</option>
+                  {CURRENCIES.map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.code} - {currency.name}
+                    </option>
+                  ))}
+                </select>
+                {!formData.preferredCurrency && (
+                  <p className="text-xs text-amber-600 flex items-center">
+                    <span className="mr-1">⚠️</span>
+                    Once set, this cannot be changed. Choose carefully.
+                  </p>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column - Service Preferences & Quick Info */}
-        <div className="lg:col-span-1 xl:col-span-1 space-y-4 md:space-y-6">
-          {/* Quick Stats Card */}
-          <div className="bg-blue-50 rounded-xl p-4 sm:p-6 md:p-8 border border-blue-100">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
-              <Star className="h-4 sm:h-5 w-4 sm:w-5 mr-2 text-blue-600" />
-              Quick Stats
+        {/* Address Information Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <MapPin className="h-5 w-5 mr-2 text-[#0DA2A4]" />
+              Address Information
             </h3>
-            <div className="space-y-3 sm:space-y-4 md:space-y-6">
-              <div className="flex items-center justify-between py-1 sm:py-2">
-                <span className="text-xs sm:text-sm text-gray-600">
-                  Experience
-                </span>
-                <span className="font-semibold text-xs sm:text-sm text-blue-600">
-                  {profileData.yearsExperience} years
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1 sm:py-2">
-                <span className="text-xs sm:text-sm text-gray-600">
-                  Documents
-                </span>
-                <span className="font-semibold text-xs sm:text-sm text-blue-600">
-                  {profileData.documents?.length || 0} uploaded
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1 sm:py-2">
-                <span className="text-xs sm:text-sm text-gray-600">
-                  Categories
-                </span>
-                <span className="font-semibold text-xs sm:text-sm text-blue-600">
-                  {profileData.categories?.length || 0} active
-                </span>
-              </div>
-            </div>
           </div>
-
-          {/* Service Preferences Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="bg-gray-50 px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-100">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
-                <Briefcase className="h-4 sm:h-5 w-4 sm:w-5 mr-2 text-[#00C2CB]" />
-                Service Preferences
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 md:p-6 bg-green-50 rounded-xl border border-green-100 space-y-2 sm:space-y-0">
-                <div>
-                  <h5 className="font-medium text-sm sm:text-base text-gray-900">
-                    Overnight Care
-                  </h5>
-                  <p className="text-xs text-gray-600">
-                    Available for overnight services
-                  </p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.providesOvernight}
-                    onChange={(e) =>
-                      handleInputChange("providesOvernight", e.target.checked)
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="sm:col-span-2 lg:col-span-3 space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Street Address
                 </label>
+                <input
+                  type="text"
+                  value={formData.streetAddress}
+                  onChange={(e) =>
+                    handleInputChange("streetAddress", e.target.value)
+                  }
+                  className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  placeholder="Enter your street address"
+                />
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 md:p-6 bg-purple-50 rounded-xl border border-purple-100 space-y-2 sm:space-y-0">
-                <div>
-                  <h5 className="font-medium text-sm sm:text-base text-gray-900">
-                    Live-in Care
-                  </h5>
-                  <p className="text-xs text-gray-600">
-                    Available for live-in services
-                  </p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.providesLiveIn}
-                    onChange={(e) =>
-                      handleInputChange("providesLiveIn", e.target.checked)
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  City
                 </label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => handleInputChange("city", e.target.value)}
+                  className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  placeholder="Enter your city"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  State/Province
+                </label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => handleInputChange("state", e.target.value)}
+                  className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  placeholder="Enter your state/province"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Postal Code
+                </label>
+                <input
+                  type="text"
+                  value={formData.postalCode}
+                  onChange={(e) =>
+                    handleInputChange("postalCode", e.target.value)
+                  }
+                  className="px-3 sm:px-4 py-3 sm:py-4 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors"
+                  placeholder="Enter your postal code"
+                />
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-3 sm:space-y-4">
-            <button
-              type="button"
-              onClick={handleSaveChanges}
-              disabled={isUpdating}
-              className="w-full bg-[#00C2CB] text-white py-3 sm:py-4 px-4 sm:px-6 md:px-8 rounded-xl font-medium hover:bg-[#00A5AD] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:text-lg"
-            >
-              {isUpdating ? "Saving Changes..." : "Save All Changes"}
-            </button>
-            <button
-              type="button"
-              className="w-full bg-gray-100 text-gray-700 py-3 sm:py-4 px-4 sm:px-6 md:px-8 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm sm:text-base md:text-lg"
-            >
-              Reset to Default
-            </button>
+        {/* Bio Section Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <FileText className="h-5 w-5 mr-2 text-[#0DA2A4]" />
+              Professional Bio
+            </h3>
           </div>
+          <div className="p-6">
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Tell us about yourself
+              </label>
+              <textarea
+                rows={4}
+                value={formData.bio}
+                onChange={(e) => handleInputChange("bio", e.target.value)}
+                className="p-3 sm:p-4 md:p-5 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4]/20 focus:border-[#0DA2A4] transition-colors resize-none"
+                placeholder="Share your experience, specialties, and what makes you a great caregiver..."
+              />
+              <p className="text-xs text-gray-500">Maximum 500 characters</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            type="button"
+            onClick={handleSaveChanges}
+            disabled={isUpdating}
+            className="flex-1 bg-[#0DA2A4] text-white py-3 px-6 rounded-xl font-medium hover:bg-[#0C8F91] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isUpdating ? "Saving Changes..." : "Save All Changes"}
+          </button>
+          <button
+            type="button"
+            className="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+          >
+            Reset to Default
+          </button>
         </div>
       </div>
     </div>
@@ -896,7 +1026,7 @@ function NotificationSettings() {
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" defaultChecked className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0DA2A4]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0DA2A4]"></div>
           </label>
         </div>
 
@@ -910,7 +1040,7 @@ function NotificationSettings() {
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" defaultChecked className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0DA2A4]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0DA2A4]"></div>
           </label>
         </div>
 
@@ -923,7 +1053,7 @@ function NotificationSettings() {
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" defaultChecked className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0DA2A4]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0DA2A4]"></div>
           </label>
         </div>
 
@@ -936,13 +1066,13 @@ function NotificationSettings() {
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0DA2A4]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0DA2A4]"></div>
           </label>
         </div>
       </div>
 
       <div className="mt-6 flex justify-end">
-        <button className="bg-[#00C2CB] text-white px-6 py-2 rounded-md">
+        <button className="bg-[#0DA2A4] text-white px-6 py-2 rounded-md hover:bg-[#0C8F91] transition-colors">
           Save Preferences
         </button>
       </div>
@@ -1059,7 +1189,7 @@ function PaymentSettings() {
         </div>
       </div>
 
-      <button className="mt-4 flex items-center text-[#00C2CB]">
+      <button className="mt-4 flex items-center text-[#0DA2A4] hover:text-[#0C8F91] transition-colors">
         <svg
           width="16"
           height="16"
@@ -1090,7 +1220,7 @@ function PaymentSettings() {
             <input
               type="text"
               defaultValue="Rachel Green"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
             />
           </div>
 
@@ -1101,7 +1231,7 @@ function PaymentSettings() {
             <input
               type="email"
               defaultValue="rachel.green@example.com"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
             />
           </div>
 
@@ -1112,7 +1242,7 @@ function PaymentSettings() {
             <input
               type="text"
               defaultValue="123 Main St, Apt 4B"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
             />
           </div>
 
@@ -1123,7 +1253,7 @@ function PaymentSettings() {
             <input
               type="text"
               defaultValue="New York"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
             />
           </div>
 
@@ -1134,7 +1264,7 @@ function PaymentSettings() {
             <input
               type="text"
               defaultValue="NY"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
             />
           </div>
 
@@ -1145,7 +1275,7 @@ function PaymentSettings() {
             <input
               type="text"
               defaultValue="10001"
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
             />
           </div>
         </div>
@@ -1153,7 +1283,7 @@ function PaymentSettings() {
         <div className="mt-6 flex justify-end">
           <button
             type="button"
-            className="bg-[#00C2CB] text-white px-6 py-2 rounded-md"
+            className="bg-[#0DA2A4] text-white px-6 py-2 rounded-md hover:bg-[#0C8F91] transition-colors"
           >
             Save Changes
           </button>
@@ -1183,7 +1313,7 @@ function SecuritySettings() {
               <input
                 type="password"
                 placeholder="••••••••"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
               />
             </div>
           </div>
@@ -1199,7 +1329,7 @@ function SecuritySettings() {
               <input
                 type="password"
                 placeholder="••••••••"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -1219,13 +1349,13 @@ function SecuritySettings() {
               <input
                 type="password"
                 placeholder="••••••••"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#00C2CB] focus:border-transparent"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#0DA2A4] focus:border-transparent"
               />
             </div>
           </div>
 
           <div className="flex justify-end">
-            <button className="bg-[#00C2CB] text-white px-4 py-2 rounded-md text-sm">
+            <button className="bg-[#0DA2A4] text-white px-4 py-2 rounded-md text-sm hover:bg-[#0C8F91] transition-colors">
               Update Password
             </button>
           </div>
@@ -1244,7 +1374,7 @@ function SecuritySettings() {
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C2CB]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C2CB]"></div>
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0DA2A4]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0DA2A4]"></div>
           </label>
         </div>
       </div>
