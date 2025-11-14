@@ -24,7 +24,9 @@ NEXT_PUBLIC_API_BASE_URL=https://careappapi.intellexio.com/api/v1
 NEXT_PUBLIC_SOCKET_URL=ws://localhost:5221/ws
 ```
 
-## 🐳 Docker Commands
+## 🐳 Docker Deployment
+
+> 📖 For detailed Docker documentation, troubleshooting, and advanced configurations, see [DOCKER.md](./DOCKER.md)
 
 ### Production Deployment
 

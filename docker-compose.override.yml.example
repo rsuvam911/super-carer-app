@@ -1,0 +1,25 @@
+# Docker Compose Override Example
+# Copy this file to docker-compose.override.yml for local customizations
+# This file is automatically loaded by docker-compose and overrides docker-compose.yml
+
+version: "3.8"
+
+services:
+  app:
+    # Override environment variables for local development
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1
+      - NEXT_PUBLIC_SOCKET_URL=ws://localhost:5221/ws
+    
+    # Uncomment to expose additional ports
+    # ports:
+    #   - "3001:3000"
+    
+    # Uncomment to add volume mounts for debugging
+    # volumes:
+    #   - ./logs:/app/logs
+
+  # Uncomment to disable nginx in local development
+  # nginx:
+  #   profiles:
+  #     - production
