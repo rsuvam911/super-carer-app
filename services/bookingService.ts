@@ -14,7 +14,7 @@ export class BookingService {
   // Get monthly calendar (unavailable days/leaves) for a provider
   static async getMonthlyCalendar(
     providerId: string,
-    monthsAhead: number = 3
+    monthsAhead: number = 3,
   ): Promise<BaseApiResponse<ProviderMonthlyCalendar>> {
     try {
       const response = await apiClient.get<
@@ -24,7 +24,7 @@ export class BookingService {
     } catch (error) {
       console.error(
         `Error fetching monthly calendar for provider ${providerId}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -33,7 +33,7 @@ export class BookingService {
   // Get specific day's available time slots for a provider
   static async getDailyAvailability(
     providerId: string,
-    date: string
+    date: string,
   ): Promise<
     BaseApiResponse<{
       id: string;
@@ -56,7 +56,7 @@ export class BookingService {
     } catch (error) {
       console.error(
         `Error fetching daily availability for provider ${providerId} on ${date}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -64,7 +64,7 @@ export class BookingService {
 
   // Create a new booking
   static async createBooking(
-    bookingData: CreateBookingRequest
+    bookingData: CreateBookingRequest,
   ): Promise<BaseApiResponse<any>> {
     // Adjust payload type if needed
     try {
@@ -72,7 +72,7 @@ export class BookingService {
       console.log("full url", apiClient.getUri() + "/bookings/create");
       const response = await apiClient.post<BaseApiResponse<any>>(
         "/bookings/create",
-        bookingData
+        bookingData,
       );
       return response.data;
     } catch (error) {
@@ -86,7 +86,7 @@ export class BookingService {
     userId: string,
     page: number = 1,
     pageSize: number = 10,
-    filters: Record<string, any> = {}
+    filters: Record<string, any> = {},
   ): Promise<BaseApiResponse<ClientBookingItem[]>> {
     try {
       // Ensure userId is passed as a query parameter
@@ -109,7 +109,7 @@ export class BookingService {
     pageNumber: number = 1,
     pageSize: number = 10,
     searchTerm: string | null = null,
-    bookingStatus: string | null = null
+    bookingStatus: string | null = null,
   ): Promise<BaseApiResponse<any[]>> {
     try {
       // Build query parameters
@@ -130,7 +130,7 @@ export class BookingService {
 
       const response = await apiClient.get<BaseApiResponse<any[]>>(
         "/bookings/all",
-        { params }
+        { params },
       );
       return response.data;
     } catch (error) {
@@ -140,7 +140,7 @@ export class BookingService {
   }
 
   static async getBookingById(
-    bookingId: string
+    bookingId: string,
   ): Promise<BaseApiResponse<any>> {
     try {
       console.log("full url", apiClient.getUri() + `/bookings/${bookingId}`);
@@ -154,10 +154,10 @@ export class BookingService {
 
   static async cancelBooking(
     bookingId: string,
-    reason: string
+    notes: string,
   ): Promise<BaseApiResponse<any>> {
     return await apiClient.post(`/bookings/${bookingId}/cancel`, {
-      reason,
+      notes,
       notifyOtherParty: true,
       forceCancel: false,
     });
@@ -166,7 +166,7 @@ export class BookingService {
   static async acceptBooking(
     bookingId: string,
     status: string,
-    notes: string
+    notes: string,
   ): Promise<any> {
     return await apiClient.put(`/bookings/${bookingId}/status`, {
       status,
@@ -177,7 +177,7 @@ export class BookingService {
   static async rejectBooking(
     bookingId: string,
     status: string,
-    notes: string
+    notes: string,
   ): Promise<any> {
     return await apiClient.put(`/bookings/${bookingId}/status`, {
       status,
@@ -186,10 +186,10 @@ export class BookingService {
   }
 
   static async getProviderAvailabilityTemplate(
-    providerId: string
+    providerId: string,
   ): Promise<BaseApiResponse<AvailabilityTemplate>> {
     const response = await apiClient.get<BaseApiResponse<AvailabilityTemplate>>(
-      `/bookings/providers/${providerId}/availability-template`
+      `/bookings/providers/${providerId}/availability-template`,
     );
     return response.data;
   }
@@ -208,25 +208,25 @@ export class BookingService {
       bufferDuration: number;
       providesRecurringBooking: boolean;
       workingHoursPerDay: number;
-    }
+    },
   ): Promise<BaseApiResponse<any>> {
     try {
       console.log(
         "Full URL:",
         apiClient.getUri() +
-          `/bookings/availabilities/${providerId}/bulk-update`
+          `/bookings/availabilities/${providerId}/bulk-update`,
       );
 
       const response = await apiClient.post<BaseApiResponse<any>>(
         `/bookings/availabilities/${providerId}/bulk-update`,
-        data
+        data,
       );
 
       return response.data;
     } catch (error) {
       console.error(
         `Error performing bulk update of availabilities for provider ${providerId}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -238,7 +238,7 @@ export class BookingService {
         `/bookings/invoice/${invoiceId}/download`,
         {
           responseType: "blob",
-        }
+        },
       );
       return response.data;
     } catch (error) {

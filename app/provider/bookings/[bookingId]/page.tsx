@@ -9,6 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Calendar,
   Clock,
@@ -87,6 +98,8 @@ export default function BookingDetailsPage() {
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   // Time tracker state
   const [timeTracker, setTimeTracker] = useState<{
@@ -396,6 +409,50 @@ export default function BookingDetailsPage() {
     }
   };
 
+  const handleCancelBooking = async () => {
+    if (!booking || !cancelReason) return;
+
+    try {
+      const response = await BookingService.cancelBooking(
+        booking.bookingId,
+        cancelReason,
+      );
+
+      if (response.success) {
+        toast({
+          title: "Booking Cancelled",
+          description: "The booking has been successfully cancelled.",
+        });
+        // Reload the page to reflect the changes
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to cancel booking.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancelDialogOpen(false);
+      setCancelReason(""); // Reset reason
+    }
+  };
+
+  const canCancelBooking = () => {
+    if (!booking) return false;
+    const cancellableStatuses = ["requested", "accepted"];
+    return cancellableStatuses.includes(booking.status.toLowerCase());
+  };
+
   const canDownloadInvoice = () => {
     const allowedStatuses = ["accepted", "completed", "cancelled"];
     return (
@@ -480,6 +537,35 @@ export default function BookingDetailsPage() {
 
   return (
     <div className="container mx-auto p-6">
+      <AlertDialog
+        open={isCancelDialogOpen}
+        onOpenChange={setIsCancelDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently cancel the
+              booking. Please provide a reason for cancellation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="Enter cancellation reason"
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelBooking}
+              disabled={!cancelReason}
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex items-center justify-between mb-6">
         <Button
           variant="outline"
@@ -578,7 +664,7 @@ export default function BookingDetailsPage() {
                           <div className="flex items-center justify-between">
                             <div className="text-lg font-mono font-bold">
                               {formatTime(
-                                timeTracker[slot.bookingWindowId]?.seconds || 0
+                                timeTracker[slot.bookingWindowId]?.seconds || 0,
                               )}
                             </div>
                             <div className="flex space-x-2">
@@ -649,13 +735,21 @@ export default function BookingDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Download Invoice Button */}
-          {canDownloadInvoice() && (
-            <div className="flex justify-end">
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-2">
+            {canCancelBooking() && (
+              <Button
+                variant="destructive"
+                onClick={() => setIsCancelDialogOpen(true)}
+              >
+                Cancel Booking
+              </Button>
+            )}
+            {canDownloadInvoice() && (
               <Button
                 onClick={() => {
                   const invoiceId = booking.bookingSlots.find(
-                    (slot) => slot.invoiceId
+                    (slot) => slot.invoiceId,
                   )?.invoiceId;
                   if (invoiceId) {
                     downloadInvoice(invoiceId);
@@ -676,8 +770,8 @@ export default function BookingDetailsPage() {
                   </>
                 )}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Client and Provider Information */}
