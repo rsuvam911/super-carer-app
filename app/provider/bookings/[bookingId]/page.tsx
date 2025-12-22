@@ -415,7 +415,7 @@ export default function BookingDetailsPage() {
     try {
       const response = await BookingService.cancelBooking(
         booking.bookingId,
-        cancelReason,
+        cancelReason
       );
 
       if (response.success) {
@@ -603,7 +603,10 @@ export default function BookingDetailsPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold">
-                    ${booking.totalAmount.toFixed(2)}
+                    $
+                    {typeof booking.totalAmount === "number"
+                      ? booking.totalAmount.toFixed(2)
+                      : "N/A"}
                   </p>
                   <p className="text-sm text-gray-500">Total Amount</p>
                 </div>
@@ -664,7 +667,7 @@ export default function BookingDetailsPage() {
                           <div className="flex items-center justify-between">
                             <div className="text-lg font-mono font-bold">
                               {formatTime(
-                                timeTracker[slot.bookingWindowId]?.seconds || 0,
+                                timeTracker[slot.bookingWindowId]?.seconds || 0
                               )}
                             </div>
                             <div className="flex space-x-2">
@@ -749,7 +752,7 @@ export default function BookingDetailsPage() {
               <Button
                 onClick={() => {
                   const invoiceId = booking.bookingSlots.find(
-                    (slot) => slot.invoiceId,
+                    (slot) => slot.invoiceId
                   )?.invoiceId;
                   if (invoiceId) {
                     downloadInvoice(invoiceId);

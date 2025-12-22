@@ -15,7 +15,7 @@ import {
   MessageCircle,
   Phone,
   Star,
-  User
+  User,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChatUtils, useChatNavigation } from "@/lib/chat-utils";
@@ -78,32 +78,36 @@ export function BookingCard({
     setIsStartingChat(true);
     try {
       // Determine who to chat with based on user role
-      const recipientUserId = userRole === "client"
-        ? booking.careProviders.Providerid
-        : booking.clients.name; // This should be userId but we don't have it in the type
+      const recipientUserId =
+        userRole === "client"
+          ? booking.careProviders.Providerid
+          : booking.clients.name; // This should be userId but we don't have it in the type
 
-      const recipientName = userRole === "client"
-        ? booking.careProviders.name
-        : booking.clients.name;
+      const recipientName =
+        userRole === "client"
+          ? booking.careProviders.name
+          : booking.clients.name;
 
-      await navigateToChatWithUser(
-        recipientUserId,
-        recipientName,
-        {
-          userRole: userRole as UserRole,
-          userId: user.userId,
-          onError: (error) => console.error("Chat error:", error)
-        }
-      );
+      await navigateToChatWithUser(recipientUserId, recipientName, {
+        userRole: userRole as UserRole,
+        userId: user.userId,
+        onError: (error) => console.error("Chat error:", error),
+      });
     } finally {
       setIsStartingChat(false);
     }
   };
 
   // Check if user can start chat from booking context
-  const canChatFromBooking = ChatUtils.canChatFromBooking(userRole as UserRole, booking.status);
+  const canChatFromBooking = ChatUtils.canChatFromBooking(
+    userRole as UserRole,
+    booking.status
+  );
 
-  const primarySlot = booking.bookingSlots[0];
+  const primarySlot =
+    booking.bookingSlots && booking.bookingSlots.length > 0
+      ? booking.bookingSlots[0]
+      : null;
 
   return (
     <Card className="w-full hover:shadow-md transition-shadow">
@@ -139,21 +143,29 @@ export function BookingCard({
         {/* Booking Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <div className="flex items-center space-x-2 text-sm">
-              <Calendar className="h-4 w-4 text-gray-500" />
-              <span>{formatDate(primarySlot.date)}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span>
-                {formatTime(primarySlot.startTime)} -{" "}
-                {formatTime(primarySlot.endTime)}
-              </span>
-            </div>
+            {primarySlot && (
+              <>
+                <div className="flex items-center space-x-2 text-sm">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <span>{formatDate(primarySlot.date)}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <Clock className="h-4 w-4 text-gray-500" />
+                  <span>
+                    {formatTime(primarySlot.startTime)} -{" "}
+                    {formatTime(primarySlot.endTime)}
+                  </span>
+                </div>
+              </>
+            )}
+
             <div className="flex items-center space-x-2 text-sm">
               <DollarSign className="h-4 w-4 text-gray-500" />
               <span className="font-medium">
-                ${booking.totalAmount.toFixed(2)}
+                $
+                {typeof booking.totalAmount === "number"
+                  ? booking.totalAmount.toFixed(2)
+                  : "N/A"}
               </span>
             </div>
           </div>
@@ -189,16 +201,29 @@ export function BookingCard({
         <div className="flex items-start space-x-2 text-sm">
           <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
           <div>
-            {booking.clients.location && booking.clients.location.streetAddress && (
-              <p>{booking.clients.location.streetAddress}</p>
-            )}
-            {booking.clients.location && (booking.clients.location.city || booking.clients.location.state || booking.clients.location.postalCode) && (
-              <p className="text-gray-600">
-                {booking.clients.location.city}{booking.clients.location.city && (booking.clients.location.state || booking.clients.location.postalCode) ? ', ' : ''}
-                {booking.clients.location.state}{booking.clients.location.state && booking.clients.location.postalCode ? ' ' : ''}
-                {booking.clients.location.postalCode}
-              </p>
-            )}
+            {booking.clients.location &&
+              booking.clients.location.streetAddress && (
+                <p>{booking.clients.location.streetAddress}</p>
+              )}
+            {booking.clients.location &&
+              (booking.clients.location.city ||
+                booking.clients.location.state ||
+                booking.clients.location.postalCode) && (
+                <p className="text-gray-600">
+                  {booking.clients.location.city}
+                  {booking.clients.location.city &&
+                  (booking.clients.location.state ||
+                    booking.clients.location.postalCode)
+                    ? ", "
+                    : ""}
+                  {booking.clients.location.state}
+                  {booking.clients.location.state &&
+                  booking.clients.location.postalCode
+                    ? " "
+                    : ""}
+                  {booking.clients.location.postalCode}
+                </p>
+              )}
           </div>
         </div>
 
@@ -247,10 +272,9 @@ export function BookingCard({
               {isStartingChat
                 ? "Starting..."
                 : ChatUtils.getChatButtonText(
-                  userRole as UserRole,
-                  "booking_detail"
-                )
-              }
+                    userRole as UserRole,
+                    "booking_detail"
+                  )}
             </Button>
           )}
         </div>

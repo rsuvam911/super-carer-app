@@ -102,23 +102,20 @@ export default function BookingDetailsPage() {
       const recipientUserId = booking.careProviders.Providerid;
       const recipientName = booking.careProviders.name;
 
-      await navigateToChatWithUser(
-        recipientUserId,
-        recipientName,
-        {
-          userRole: userRole as UserRole,
-          userId: user.userId,
-          onError: (error) => console.error("Chat error:", error)
-        }
-      );
+      await navigateToChatWithUser(recipientUserId, recipientName, {
+        userRole: userRole as UserRole,
+        userId: user.userId,
+        onError: (error) => console.error("Chat error:", error),
+      });
     } finally {
       setIsStartingChat(false);
     }
   };
 
   // Check if user can start chat from booking context
-  const canChatFromBooking = booking ?
-    ChatUtils.canChatFromBooking(userRole as UserRole, booking.status) : false;
+  const canChatFromBooking = booking
+    ? ChatUtils.canChatFromBooking(userRole as UserRole, booking.status)
+    : false;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -187,7 +184,10 @@ export default function BookingDetailsPage() {
     );
   }
 
-  const primarySlot = booking.bookingSlots[0];
+  const primarySlot =
+    booking.bookingSlots && booking.bookingSlots.length > 0
+      ? booking.bookingSlots[0]
+      : null;
 
   return (
     <div className="container mx-auto p-6">
@@ -275,10 +275,9 @@ export default function BookingDetailsPage() {
                         {isStartingChat
                           ? "Starting Chat..."
                           : ChatUtils.getChatButtonText(
-                            userRole as UserRole,
-                            "booking_detail"
-                          )
-                        }
+                              userRole as UserRole,
+                              "booking_detail"
+                            )}
                       </Button>
                     </div>
                   )}
@@ -296,10 +295,9 @@ export default function BookingDetailsPage() {
                         {isStartingChat
                           ? "Starting Chat..."
                           : ChatUtils.getChatButtonText(
-                            userRole as UserRole,
-                            "booking_detail"
-                          )
-                        }
+                              userRole as UserRole,
+                              "booking_detail"
+                            )}
                       </Button>
                     </div>
                   )}
@@ -334,7 +332,10 @@ export default function BookingDetailsPage() {
               <div>
                 <h4 className="font-medium text-gray-900">Total Amount</h4>
                 <p className="text-2xl font-bold text-green-600">
-                  ${booking.totalAmount.toFixed(2)}
+                  $
+                  {typeof booking.totalAmount === "number"
+                    ? booking.totalAmount.toFixed(2)
+                    : "N/A"}
                 </p>
               </div>
             </CardContent>
@@ -364,7 +365,9 @@ export default function BookingDetailsPage() {
                       </p>
                     </>
                   ) : (
-                    <p className="text-gray-500">No location information available</p>
+                    <p className="text-gray-500">
+                      No location information available
+                    </p>
                   )}
                 </div>
               </div>
@@ -404,7 +407,7 @@ export default function BookingDetailsPage() {
           </Card>
 
           {/* Invoice */}
-          {primarySlot.invoiceFileUrl && (
+          {primarySlot && primarySlot.invoiceFileUrl && (
             <Card>
               <CardHeader>
                 <CardTitle>Invoice</CardTitle>
@@ -413,7 +416,7 @@ export default function BookingDetailsPage() {
                 <div className="flex items-center space-x-2">
                   <FileText className="h-4 w-4 text-gray-500" />
                   <span className="text-sm">
-                    {primarySlot.invoiceFileName || "Invoice"}
+                    {(primarySlot && primarySlot.invoiceFileName) || "Invoice"}
                   </span>
                 </div>
                 <Button
@@ -421,8 +424,10 @@ export default function BookingDetailsPage() {
                   size="sm"
                   className="mt-2 w-full"
                   onClick={() =>
+                    primarySlot &&
                     handleDownloadInvoice(primarySlot.invoiceFileUrl!)
                   }
+                  disabled={!primarySlot}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download Invoice
@@ -450,14 +455,14 @@ export default function BookingDetailsPage() {
               {["pending", "confirmed"].includes(
                 booking.status.toLowerCase()
               ) && (
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={handleCancel}
-                  >
-                    Cancel Booking
-                  </Button>
-                )}
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={handleCancel}
+                >
+                  Cancel Booking
+                </Button>
+              )}
 
               <Button
                 variant="outline"

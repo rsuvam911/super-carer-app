@@ -1,8 +1,8 @@
+// Booking types
 export interface BookingLocation {
   streetAddress: string;
   city: string;
   state: string;
-  country: string;
   postalCode: string;
   longitude: number;
   latitude: number;

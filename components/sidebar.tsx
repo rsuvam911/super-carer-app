@@ -102,6 +102,12 @@ export default function Sidebar({ isOpen = true, onToggle }: SidebarProps) {
       icon: MessageSquare,
       roles: ["client", "provider"],
     },
+    {
+      href: "/opportunities",
+      label: "Opportunities",
+      icon: Star,
+      roles: ["client", "provider"],
+    },
   ];
 
   const managementLinks: NavItem[] = [
