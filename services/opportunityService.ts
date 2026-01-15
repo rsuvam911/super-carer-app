@@ -7,6 +7,74 @@ import {
 } from "@/types/opportunity";
 import { BaseApiResponse } from "@/types/api";
 
+export interface CreateOpportunityRequest {
+  title: string;
+  description: string;
+  recipientName: string;
+  location: {
+    streetAddress: string;
+    city: string | null;
+    state: string;
+    zipCode: string | null;
+    country: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
+  helpStartTimeframe: string;
+  weeklyHoursRange: string;
+  careDuration: string;
+  categoryId: string;
+  careServiceIds: string[];
+  specialtyConditionIds: string[];
+  medicalNotes: string;
+  preferredGender: string;
+  preferredLanguageIds: string[];
+  startDate: string;
+  scheduleDays: Array<{
+    day: string;
+    scheduleTimes: string[];
+  }>;
+}
+
+export interface CreateOpportunityResponse {
+  apiResponseId: string;
+  success: boolean;
+  statusCode: number;
+  message: string;
+  payload: {
+    id: string;
+    title: string;
+    description: string;
+    recipientName: string;
+    location: {
+      streetAddress: string;
+      city: string | null;
+      state: string;
+      zipCode: string | null;
+      country: string;
+      latitude: number | null;
+      longitude: number | null;
+    };
+    helpStartTimeframe: string;
+    weeklyHoursRange: string;
+    careDuration: string;
+    categoryId: string;
+    careServiceIds: string[];
+    specialtyConditionIds: string[];
+    medicalNotes: string;
+    preferredGender: string;
+    preferredLanguageIds: string[];
+    startDate: string;
+    scheduleDays: Array<{
+      day: string;
+      scheduleTimes: string[];
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  };
+  timestamp: string;
+}
+
 export class OpportunityService {
   /**
    * Fetch opportunities for clients
@@ -72,6 +140,29 @@ export class OpportunityService {
       return response.data;
     } catch (error) {
       console.error(`Error fetching ${userType} opportunities:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new opportunity
+   */
+  static async createOpportunity(
+    opportunityData: CreateOpportunityRequest
+  ): Promise<CreateOpportunityResponse> {
+    try {
+      const response = await apiClient.post<CreateOpportunityResponse>(
+        "/opportunities/create",
+        opportunityData,
+        {
+          headers: {
+            "Content-Type": "application/json; x-api-version=1.0",
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error creating opportunity:", error);
       throw error;
     }
   }

@@ -42,6 +42,26 @@ export interface CareCategory {
   experienceLevel: number;
 }
 
+// Care Services from the API
+export interface CareService {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Specialty Care Conditions from the API
+export interface SpecialtyCareCondition {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProviderProfileBase {
   userId: string;
   providerId: string;

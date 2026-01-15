@@ -20,7 +20,7 @@ help:
 	@echo "  make health       - Check service health"
 	@echo "  make clean        - Remove all containers and volumes"
 	@echo "  make rebuild      - Rebuild without cache"
-
+	@echo "  make run          - Run app in development mode (alias of dev)"
 # Development commands
 dev:
 	@echo "🚀 Starting development environment..."
@@ -112,3 +112,7 @@ setup:
 	else \
 		echo "ℹ️  .env file already exists"; \
 	fi
+	
+run:
+	@echo "Running app..."
+	bun run dev
