@@ -767,7 +767,7 @@ export default function CreateOpportunityModal({
                   <div className="space-y-4">
                     <Label className="text-slate-700 font-semibold text-base">Preferred Gender</Label>
                     <RadioGroup
-                      value={formData.preferredGender || ""}
+                      value={formData.preferredGender || "no-preference"}
                       onValueChange={(value) => handleInputChange("preferredGender", value)}
                       className="flex flex-col space-y-3"
                     >
@@ -824,7 +824,6 @@ export default function CreateOpportunityModal({
                         {careServices.map((service) => (
                           <div
                             key={service.id}
-                            onClick={() => handleServiceToggle(service.id)}
                             className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${formData.careServiceIds.includes(service.id)
                               ? "bg-indigo-50/50 border-indigo-200 shadow-sm"
                               : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
@@ -863,7 +862,6 @@ export default function CreateOpportunityModal({
                         {specialtyConditions.map((condition) => (
                           <div
                             key={condition.id}
-                            onClick={() => handleConditionToggle(condition.id)}
                             className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${formData.specialtyConditionIds.includes(condition.id)
                               ? "bg-indigo-50/50 border-indigo-200 shadow-sm"
                               : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
